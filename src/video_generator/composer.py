@@ -7,7 +7,7 @@ import platform
 from pathlib import Path
 
 from src.video_generator.client import VolcengineVideoClient
-from src.video_generator.tts_client import EdgeTTSClient
+from src.video_generator.tts_client import TTSClient
 from src.video_generator.template import build_video_prompt, get_music
 from src.storage.models import ContentItem
 from src.storage.db import ContentStore
@@ -218,14 +218,14 @@ class VideoComposer:
         actual_duration = float(duration)
 
         try:
-            tts = EdgeTTSClient()
+            tts = TTSClient()
             for i, point in enumerate(core_points):
                 seg_path = str(VIDEO_DIR / f"{content.id}_seg{i}.mp3")
                 Path(seg_path).unlink(missing_ok=True)
                 seg_dur = 0.0
-                for attempt in range(4):
+                for attempt in range(2):
                     if attempt > 0:
-                        await asyncio.sleep(4)
+                        await asyncio.sleep(2)
                     _, d = await tts.synthesize(point, seg_path)
                     seg_dur = d if d > 0 and Path(seg_path).stat().st_size > 1000 else 0.0
                     if seg_dur > 0:
