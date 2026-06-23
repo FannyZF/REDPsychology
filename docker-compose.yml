@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    container_name: psychology-studio
+    ports:
+      - "8998:8998"
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+      - ./logs:/app/logs
+      - ./config.yaml:/app/config.yaml
+      - ./assets:/app/assets:ro
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      - VOLCENGINE_API_KEY=${VOLCENGINE_API_KEY:-}
+    shm_size: "2gb"

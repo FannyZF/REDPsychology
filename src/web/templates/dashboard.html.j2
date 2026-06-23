@@ -1,0 +1,75 @@
+{% extends "base.html.j2" %}
+{% block content %}
+<div class="grid grid-cols-4 gap-4 mb-8">
+  <div class="stat-card text-center">
+    <div class="text-3xl font-bold text-gray-800">{{ stats.total }}</div>
+    <div class="text-gray-500 text-sm mt-1">总采集</div>
+  </div>
+  <div class="stat-card text-center">
+    <div class="text-3xl font-bold text-orange-500">{{ stats.pending }}</div>
+    <div class="text-gray-500 text-sm mt-1">待处理</div>
+  </div>
+  <div class="stat-card text-center">
+    <div class="text-3xl font-bold text-blue-500">{{ stats.processed + stats.video_generated }}</div>
+    <div class="text-gray-500 text-sm mt-1">已加工</div>
+  </div>
+  <div class="stat-card text-center">
+    <div class="text-3xl font-bold text-green-500">{{ stats.published }}</div>
+    <div class="text-gray-500 text-sm mt-1">已发布</div>
+  </div>
+</div>
+
+<div class="flex gap-3 mb-6">
+  <button onclick="action('collect')" class="btn bg-blue-500 text-white">抓取信源</button>
+  <button onclick="action('process')" class="btn bg-orange-500 text-white">LLM 加工</button>
+  <button onclick="action('video')" class="btn bg-purple-500 text-white">生成视频</button>
+  <button onclick="action('run')" class="btn bg-green-500 text-white">一键全流程</button>
+  <span id="action-status" class="text-sm text-gray-400 self-center ml-3"></span>
+</div>
+
+{% if pending %}
+<div class="card p-6 mb-6">
+  <h3 class="font-semibold text-gray-700 mb-3">待处理队列 ({{ pending|length }})</h3>
+  <div class="space-y-2">
+  {% for item in pending %}
+    <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+      <div class="flex-1 min-w-0">
+        <a href="/content/{{ item.id }}" class="text-sm font-medium text-gray-700 hover:text-blue-500 truncate block">{{ item.title[:60] }}</a>
+        <span class="text-xs text-gray-400">{{ item.source }}</span>
+      </div>
+    </div>
+  {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if queue %}
+<div class="card p-6">
+  <h3 class="font-semibold text-gray-700 mb-3">待发布队列 ({{ queue|length }})</h3>
+  <div class="space-y-2">
+  {% for item in queue %}
+    <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+      <div class="flex-1 min-w-0">
+        <span class="text-xs bg-purple-100 text-purple-600 pill mr-2">视频</span>
+        <a href="/content/{{ item.id }}" class="text-sm font-medium text-gray-700 hover:text-blue-500 truncate">{{ (item.xhs_title or item.title)[:50] }}</a>
+      </div>
+      <button onclick="publishOne('{{ item.id }}')" class="btn bg-green-500 text-white text-xs">发布</button>
+    </div>
+  {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+async function action(cmd) {
+  document.getElementById('action-status').textContent = '执行中...';
+  const r = await apiFetch('/api/pipeline/'+cmd, 'POST');
+  document.getElementById('action-status').textContent = JSON.stringify(r).slice(0,100);
+  setTimeout(()=>location.reload(), 2000);
+}
+async function publishOne(id) {
+  await apiFetch('/api/publish/'+id, 'POST');
+  location.reload();
+}
+</script>
+{% endblock %}

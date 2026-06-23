@@ -1,0 +1,104 @@
+{% extends "base.html.j2" %}
+{% block content %}
+<div class="grid grid-cols-3 gap-6">
+<div class="col-span-2 space-y-6">
+
+<div class="card p-6">
+  <h3 class="font-semibold text-gray-700 mb-3">原文信息</h3>
+  <p class="text-lg font-medium text-gray-800 mb-2">{{ item.title }}</p>
+  <div class="flex gap-2 text-xs text-gray-500 mb-3">
+    <span class="pill bg-gray-100">{{ item.source }}</span>
+    <span class="pill bg-gray-100">{{ item.published_at[:10] }}</span>
+    <a href="{{ item.url }}" target="_blank" class="pill bg-blue-50 text-blue-500">原文链接</a>
+  </div>
+  <details class="mt-2">
+    <summary class="text-sm text-gray-500 cursor-pointer hover:text-gray-700">展开原文</summary>
+    <pre class="text-sm text-gray-600 mt-2 whitespace-pre-wrap max-h-64 overflow-y-auto bg-gray-50 p-3 rounded-lg">{{ item.original_text[:2000] }}</pre>
+  </details>
+</div>
+
+{% if item.status in ('processed','video_generated','published') %}
+<div class="card p-6">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="font-semibold text-gray-700">LLM 加工结果</h3>
+    <button onclick="reprocess('{{ item.id }}')" class="btn bg-orange-100 text-orange-600 text-xs">重新加工</button>
+  </div>
+  <div class="flex gap-2 mb-3">
+    <span class="pill bg-blue-100 text-blue-600">{{ item.topic_category }}</span>
+    {% if item.sub_category %}<span class="pill bg-gray-100 text-gray-600">{{ item.sub_category }}</span>{% endif %}
+    <span class="pill bg-yellow-100 text-yellow-700">{{ item.priority }}</span>
+    <span class="pill bg-green-100 text-green-600">{{ item.target_audience }}</span>
+  </div>
+
+  <h4 class="text-sm font-semibold text-gray-600 mb-2">核心观点 ({{ points|length }})</h4>
+  <ul class="list-disc list-inside text-sm text-gray-700 space-y-1 mb-4">
+  {% for p in points %}<li>{{ p }}</li>{% endfor %}
+  </ul>
+
+  <h4 class="text-sm font-semibold text-gray-600 mb-2">摘要</h4>
+  <p class="text-sm text-gray-600 mb-4 bg-gray-50 p-3 rounded-lg">{{ item.summary }}</p>
+
+  <h4 class="text-sm font-semibold text-gray-600 mb-2">小红书标题</h4>
+  <p class="text-sm font-medium text-gray-800 mb-2">{{ item.xhs_title }}</p>
+
+  <h4 class="text-sm font-semibold text-gray-600 mb-2">小红书正文 ({{ item.xhs_content|length }}字)</h4>
+  <p class="text-sm text-gray-600 whitespace-pre-wrap bg-gray-50 p-3 rounded-lg">{{ item.xhs_content[:500] }}</p>
+
+  <div class="flex gap-1 flex-wrap mt-2">
+  {% for t in tags %}<span class="pill bg-pink-50 text-pink-500 text-xs">#{{ t }}</span>{% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if item.error_message %}
+<div class="card p-6 border-2 border-red-200">
+  <h3 class="font-semibold text-red-600 mb-2">错误信息</h3>
+  <pre class="text-sm text-red-500 whitespace-pre-wrap">{{ item.error_message }}</pre>
+</div>
+{% endif %}
+
+</div>
+
+<div class="space-y-6">
+{% if item.video_path %}
+<div class="card p-6">
+  <h3 class="font-semibold text-gray-700 mb-3">视频 ({{ item.video_duration }}s)</h3>
+  <video src="/api/content/{{ item.id }}/video" controls class="w-full rounded-lg mb-3" style="max-height:400px"></video>
+  <button onclick="revideo('{{ item.id }}')" class="btn bg-purple-100 text-purple-600 text-xs w-full">重新生成</button>
+</div>
+{% elif item.status == 'processed' %}
+<div class="card p-6">
+  <h3 class="font-semibold text-gray-700 mb-3">视频</h3>
+  <p class="text-sm text-gray-400 mb-3">尚未生成</p>
+  <button onclick="revideo('{{ item.id }}')" class="btn bg-purple-500 text-white text-sm w-full">生成视频</button>
+</div>
+{% endif %}
+
+<div class="card p-6">
+  <h3 class="font-semibold text-gray-700 mb-3">发布状态</h3>
+  {% if item.publish_status == 'published' %}
+    <span class="pill bg-green-100 text-green-600">已发布</span>
+    <p class="text-xs text-gray-400 mt-2">{{ item.xhs_published_at[:19] }}</p>
+  {% elif item.status == 'video_generated' %}
+    <span class="pill bg-purple-100 text-purple-600">待发布</span>
+    <button onclick="publishOne('{{ item.id }}')" class="btn bg-green-500 text-white text-sm w-full mt-3">立即发布</button>
+  {% else %}
+    <span class="pill bg-gray-100 text-gray-500">未就绪</span>
+  {% endif %}
+</div>
+
+<div class="card p-6">
+  <h3 class="font-semibold text-gray-700 mb-3">操作</h3>
+  <div class="space-y-2">
+    <a href="javascript:if(confirm('确认删除?'))fetch('/api/content/{{ item.id }}',{method:'DELETE'}).then(()=>location.href='/content')" class="btn bg-red-50 text-red-500 text-sm w-full block text-center">删除</a>
+  </div>
+</div>
+</div>
+</div>
+
+<script>
+async function reprocess(id) { await apiFetch('/api/content/'+id+'/reprocess','POST'); location.reload(); }
+async function revideo(id) { await apiFetch('/api/content/'+id+'/revideo','POST'); location.reload(); }
+async function publishOne(id) { await apiFetch('/api/publish/'+id,'POST'); location.reload(); }
+</script>
+{% endblock %}

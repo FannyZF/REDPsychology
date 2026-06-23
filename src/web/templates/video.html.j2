@@ -1,0 +1,25 @@
+{% extends "base.html.j2" %}
+{% block content %}
+<h2 class="text-lg font-semibold text-gray-800 mb-6">视频管理</h2>
+{% if items %}
+<div class="grid grid-cols-3 gap-4">
+{% for item in items %}
+<div class="card p-4">
+  <div class="bg-gray-900 rounded-lg flex items-center justify-center h-48 mb-3">
+    <video src="/api/content/{{ item.id }}/video" controls class="max-h-full rounded-lg" preload="metadata"></video>
+  </div>
+  <p class="text-sm font-medium text-gray-700 truncate mb-1">{{ (item.xhs_title or item.title)[:40] }}</p>
+  <div class="flex items-center justify-between text-xs text-gray-400">
+    <span>{{ item.video_duration }}s</span>
+    <a href="/content/{{ item.id }}" class="text-blue-500 hover:underline">详情</a>
+  </div>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<div class="card p-12 text-center text-gray-400">
+  <p>暂无生成的视频</p>
+  <a href="/" class="btn bg-purple-500 text-white mt-4 inline-block">去生成视频</a>
+</div>
+{% endif %}
+{% endblock %}

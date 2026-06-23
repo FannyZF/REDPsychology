@@ -1,0 +1,59 @@
+{% extends "base.html.j2" %}
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+  <h2 class="text-lg font-semibold text-gray-800">信源管理</h2>
+  <span class="text-sm text-gray-400">共 {{ sources|length }} 个信源</span>
+</div>
+
+<div class="space-y-4">
+{% for src in sources %}
+<div class="card p-4 flex items-center justify-between">
+  <div class="flex-1">
+    <div class="flex items-center gap-2 mb-1">
+      <span class="font-medium text-gray-800">{{ src.name }}</span>
+      {% if src.enabled %}
+      <span class="pill bg-green-100 text-green-600 text-xs">启用</span>
+      {% else %}
+      <span class="pill bg-gray-100 text-gray-500 text-xs">禁用</span>
+      {% endif %}
+      <span class="pill bg-blue-50 text-blue-500 text-xs">{{ src.content_type }}</span>
+    </div>
+    <span class="text-xs text-gray-400 block">{{ src.list_url }}</span>
+  </div>
+  <div class="flex gap-2">
+    <button onclick="toggleSource({{ loop.index0 }})" class="btn bg-gray-100 text-xs">
+      {% if src.enabled %}禁用{% else %}启用{% endif %}
+    </button>
+    <button onclick="if(confirm('确认删除?'))deleteSource({{ loop.index0 }})" class="btn bg-red-50 text-red-500 text-xs">删除</button>
+  </div>
+</div>
+{% endfor %}
+</div>
+
+<div class="card p-6 mt-6">
+  <h3 class="font-semibold text-gray-700 mb-4">添加信源</h3>
+  <div class="flex gap-3 mb-4">
+    <input id="detect-url" type="text" placeholder="输入网站首页URL自动探测..." class="flex-1 border rounded-xl px-4 py-2 text-sm">
+    <button onclick="detectSource()" class="btn bg-blue-500 text-white text-sm">自动探测</button>
+  </div>
+  <div id="detect-result" class="text-sm bg-gray-50 p-3 rounded-lg hidden"></div>
+</div>
+
+<script>
+async function toggleSource(idx) {
+  await apiFetch('/api/sources/'+idx+'/toggle', 'PUT');
+  location.reload();
+}
+async function deleteSource(idx) {
+  await apiFetch('/api/sources/'+idx, 'DELETE');
+  location.reload();
+}
+async function detectSource() {
+  const url = document.getElementById('detect-url').value;
+  const r = await apiFetch('/api/sources/detect', 'POST', {url});
+  const el = document.getElementById('detect-result');
+  el.classList.remove('hidden');
+  el.innerHTML = '<pre class="text-xs">'+JSON.stringify(r, null, 2)+'</pre>';
+}
+</script>
+{% endblock %}

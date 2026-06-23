@@ -1,0 +1,203 @@
+import asyncio
+import threading
+from datetime import datetime, timezone, timedelta
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+
+from src.storage.db import ContentStore
+from src.processor.llm_client import LLMClient
+from src.processor.pipeline import ProcessingPipeline
+from src.utils.logger import get_logger
+from src.utils.key_store import load as load_keys
+from src.utils.config_store import load as load_schedule
+
+logger = get_logger(__name__)
+tz_utc8 = timezone(timedelta(hours=8))
+
+
+class DailyPipeline:
+    def __init__(self):
+        self.store = ContentStore()
+
+    async def step_collect(self):
+        from src.collector.orchestrator import collect_all
+        logger.info("[Daily] Step 1: Collecting sources...")
+        try:
+            result = await collect_all()
+            logger.info(f"[Daily] Collect done: {result['total_new']} new, {result['total_skipped']} skipped")
+
+            logger.info("[Daily] Step 1b: Collecting trending keywords...")
+            await self._collect_trending()
+            return result
+        except Exception as e:
+            logger.error(f"[Daily] Collect failed: {e}")
+            return None
+
+    async def _collect_trending(self):
+        try:
+            from src.collector.trending import collect_trending_from_newsnow
+            from src.processor.trend_booster import merge_trending
+            from src.utils.config_store import load as load_schedule
+            config = load_schedule()
+            enabled = config.get("trending_enabled", True)
+            if not enabled:
+                logger.info("[Trending] Disabled in config")
+                return
+            counts = await collect_trending_from_newsnow()
+            if counts:
+                merge_trending(counts)
+                logger.info(f"[Trending] Collected {len(counts)} keywords via newsnow")
+        except Exception as e:
+            logger.warning(f"[Trending] Error: {e}")
+
+    def step_process(self):
+        logger.info("[Daily] Step 2: LLM processing...")
+        pending = self.store.get_pending(limit=50)
+        if not pending:
+            logger.info("[Daily] No pending items")
+            return {"success": 0, "failed": 0}
+
+        client = LLMClient()
+        pipeline = ProcessingPipeline(client, self.store)
+        result = asyncio.run(pipeline.process_batch(pending))
+        logger.info(f"[Daily] Process done: {result['success']} success, {result['failed']} failed, tokens={client.total_tokens}")
+        return result
+
+    async def step_video(self):
+        from src.video_generator.composer import generate_all
+        from src.processor.scorer import select_top, score_content
+        from src.utils.keyword_store import load as load_kw_config
+
+        keys = load_keys()
+        volc_key = keys.get("volcengine_api_key", "")
+        if not volc_key:
+            logger.warning("[Daily] Skipping video: no Volcengine API key")
+            return {"success": 0, "failed": 0}
+
+        processed = self.store.get_processed(limit=50)
+        if not processed:
+            logger.info("[Daily] No processed items for video scoring")
+            return {"success": 0, "failed": 0}
+
+        kw_config = load_kw_config()
+        top_items = select_top(processed, top_n=3, keywords_config=kw_config)
+
+        if not top_items:
+            logger.info("[Daily] No items matched keyword priority")
+            return {"success": 0, "failed": 0}
+
+        logger.info(f"[Daily] Step 3: Video generation ({len(top_items)} scored items selected)...")
+        scores_str = ", ".join(f"{it.id[:6]}({sc})" for sc, it in
+            sorted([(score_content(it, kw_config), it) for it in top_items], key=lambda x: x[0], reverse=True))
+        logger.info(f"[Daily] Selected: {scores_str}")
+        result = await generate_all(self.store, max_count=3, specific_items=top_items)
+        return result
+
+    def step_publish(self):
+        from src.publisher.selenium_publisher import XiaohongshuPublisher
+        from src.publisher.publish_service import ContentPublisher, PublishScheduler
+
+        scheduler = PublishScheduler(self.store)
+        can, reason = scheduler.can_publish_now()
+        if not can:
+            logger.info(f"[Daily] Skipping publish: {reason}")
+            return {"published": 0, "reason": reason}
+
+        queue = self.store.get_publish_queue(limit=1)
+        if not queue:
+            logger.info("[Daily] No items in publish queue")
+            return {"published": 0}
+
+        logger.info("[Daily] Step 4: Publishing to Xiaohongshu...")
+        xhs = XiaohongshuPublisher(headless=True)
+        publisher = ContentPublisher(xhs, self.store)
+
+        try:
+            xhs.start()
+            if not xhs.ensure_login():
+                logger.error("[Daily] Login failed")
+                return {"published": 0, "reason": "login_failed"}
+            ok = publisher.publish_one(queue[0])
+            logger.info(f"[Daily] Publish result: {'success' if ok else 'failed'}")
+            return {"published": 1 if ok else 0}
+        except Exception as e:
+            logger.error(f"[Daily] Publish error: {e}")
+            return {"published": 0, "error": str(e)}
+        finally:
+            try:
+                xhs.close()
+            except Exception:
+                pass
+
+    def run_full(self):
+        logger.info("=" * 40)
+        logger.info("DAILY PIPELINE START")
+        logger.info("=" * 40)
+
+        asyncio.run(self.step_collect())
+        self.step_process()
+        asyncio.run(self.step_video())
+        self.step_publish()
+
+        logger.info("=" * 40)
+        logger.info("DAILY PIPELINE COMPLETE")
+        logger.info("=" * 40)
+
+
+def _run_collect_in_thread(pipeline: DailyPipeline):
+    asyncio.run(pipeline.step_collect())
+
+
+def setup_scheduler() -> BackgroundScheduler:
+    config = load_schedule()
+    pipeline = DailyPipeline()
+
+    scheduler = BackgroundScheduler(timezone="Asia/Shanghai")
+
+    collect_hour = config.get("collect_hour", 7)
+    collect_min = config.get("collect_minute", 0)
+    scheduler.add_job(
+        _run_collect_in_thread,
+        CronTrigger(hour=collect_hour, minute=collect_min),
+        args=[pipeline],
+        id="collect",
+        name="collect",
+    )
+
+    process_hour = config.get("process_hour", 7)
+    process_min = config.get("process_minute", 30)
+    scheduler.add_job(
+        pipeline.step_process,
+        CronTrigger(hour=process_hour, minute=process_min),
+        id="process",
+        name="process",
+    )
+
+    video_hour = config.get("video_hour", 8)
+    video_min = config.get("video_minute", 15)
+    scheduler.add_job(
+        lambda: asyncio.run(pipeline.step_video()),
+        CronTrigger(hour=video_hour, minute=video_min),
+        id="video",
+        name="video",
+    )
+
+    publish_hour = config.get("publish_hour", 18)
+    publish_min = config.get("publish_minute", 0)
+    scheduler.add_job(
+        pipeline.step_publish,
+        CronTrigger(hour=publish_hour, minute=publish_min),
+        id="publish",
+        name="publish",
+    )
+
+    logger.info(
+        f"Scheduler configured: "
+        f"collect={collect_hour:02d}:{collect_min:02d}, "
+        f"process={process_hour:02d}:{process_min:02d}, "
+        f"video={video_hour:02d}:{video_min:02d}, "
+        f"publish={publish_hour:02d}:{publish_min:02d}"
+    )
+
+    return scheduler

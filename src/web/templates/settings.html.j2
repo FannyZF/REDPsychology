@@ -1,0 +1,233 @@
+{% extends "base.html.j2" %}
+{% block content %}
+<h2 class="text-lg font-semibold text-gray-800 mb-6">系统设置</h2>
+
+<div class="grid grid-cols-2 gap-6">
+
+<div class="card p-6">
+  <h3 class="font-semibold text-gray-700 mb-4">API Keys</h3>
+  <div class="space-y-4">
+    <div>
+      <label class="text-sm text-gray-500 block mb-1">Deepseek API Key</label>
+      <input id="deepseek-key" type="password" value="{{ keys.deepseek_api_key }}" class="w-full border rounded-xl px-4 py-2 text-sm">
+    </div>
+    <div>
+      <label class="text-sm text-gray-500 block mb-1">Deepseek Base URL</label>
+      <input id="deepseek-base" type="text" value="{{ keys.deepseek_base_url }}" class="w-full border rounded-xl px-4 py-2 text-sm">
+    </div>
+    <div>
+      <label class="text-sm text-gray-500 block mb-1">火山引擎 API Key (ARK 开头)</label>
+      <input id="volcengine-key" type="password" value="{{ keys.volcengine_api_key }}" class="w-full border rounded-xl px-4 py-2 text-sm">
+    </div>
+    <button onclick="saveKeys()" class="btn bg-blue-500 text-white text-sm">保存 API Keys</button>
+  </div>
+</div>
+
+<div class="card p-6">
+  <h3 class="font-semibold text-gray-700 mb-4">定时调度</h3>
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <label class="text-sm text-gray-500 block mb-1">采集时间</label>
+      <input id="collect-time" type="time" value="{{ time.collect_time }}" class="w-full border rounded-xl px-4 py-2 text-sm">
+    </div>
+    <div>
+      <label class="text-sm text-gray-500 block mb-1">加工时间</label>
+      <input id="process-time" type="time" value="{{ time.process_time }}" class="w-full border rounded-xl px-4 py-2 text-sm">
+    </div>
+    <div>
+      <label class="text-sm text-gray-500 block mb-1">视频生成时间</label>
+      <input id="video-time" type="time" value="{{ time.video_time }}" class="w-full border rounded-xl px-4 py-2 text-sm">
+    </div>
+    <div>
+      <label class="text-sm text-gray-500 block mb-1">发布时间</label>
+      <input id="publish-time" type="time" value="{{ time.publish_time }}" class="w-full border rounded-xl px-4 py-2 text-sm">
+    </div>
+    <div>
+      <label class="text-sm text-gray-500 block mb-1">每日发布上限</label>
+      <input id="max-per-day" type="number" value="{{ schedule.max_per_day }}" min="1" max="5" class="w-full border rounded-xl px-4 py-2 text-sm">
+    </div>
+  </div>
+  <button onclick="saveSchedule()" class="btn bg-blue-500 text-white text-sm mt-4">保存调度配置</button>
+</div>
+
+</div>
+
+<div class="card p-6 mt-6">
+  <h3 class="font-semibold text-gray-700 mb-4">趋势热词加成</h3>
+  <p class="text-xs text-gray-400 mb-3">自动从热搜平台采集热词，匹配的内容在评分中动态加成（3天衰减）。热度越高的关键词，对应内容的发布优先级越高。</p>
+  <div class="grid grid-cols-3 gap-4 mb-4">
+    <div>
+      <label class="text-sm text-gray-500 block mb-1">启用趋势加成</label>
+      <select id="trending-enabled" class="w-full border rounded-xl px-4 py-2 text-sm">
+        <option value="true" {% if schedule.trending_enabled %}selected{% endif %}>启用</option>
+        <option value="false" {% if not schedule.trending_enabled %}selected{% endif %}>禁用</option>
+      </select>
+    </div>
+    <div>
+      <label class="text-sm text-gray-500 block mb-1">加成倍率</label>
+      <select id="trending-multiplier" class="w-full border rounded-xl px-4 py-2 text-sm">
+        <option value="0.5">0.5x</option>
+        <option value="1.0" selected>1.0x (默认)</option>
+        <option value="1.5">1.5x</option>
+        <option value="2.0">2.0x</option>
+      </select>
+    </div>
+    <div>
+      <label class="text-sm text-gray-500 block mb-1">热榜来源 (newsnow)</label>
+      <div class="flex gap-3 mt-2 flex-wrap">
+        <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="src-weibo" checked> 微博</label>
+        <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="src-zhihu" checked> 知乎</label>
+        <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="src-baidu" checked> 百度</label>
+        <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="src-toutiao"> 头条</label>
+        <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="src-douyin"> 抖音</label>
+        <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="src-bilibili"> B站</label>
+        <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="src-thepaper"> 澎湃</label>
+        <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="src-wallstreetcn"> 华尔街</label>
+        <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="src-cls"> 财联社</label>
+        <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="src-ifeng"> 凤凰</label>
+        <label class="flex items-center gap-1 text-sm"><input type="checkbox" id="src-tieba"> 贴吧</label>
+      </div>
+    </div>
+  </div>
+  <div class="flex gap-2">
+    <button onclick="collectTrending()" class="btn bg-orange-500 text-white text-xs">立即采集热词</button>
+    <button onclick="viewTrending()" class="btn bg-gray-100 text-gray-600 text-xs">查看活跃热词</button>
+    <button onclick="clearTrending()" class="btn bg-red-50 text-red-500 text-xs">清空热词</button>
+    <button onclick="saveSchedule()" class="btn bg-blue-500 text-white text-xs">保存配置</button>
+  </div>
+  <div id="trending-result" class="text-xs text-gray-500 mt-3 hidden bg-gray-50 p-3 rounded-lg max-h-32 overflow-y-auto"></div>
+</div>
+
+<div class="card p-6 mt-6">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="font-semibold text-gray-700">关键词优先级</h3>
+    <div class="flex gap-2">
+      <button onclick="addKeyword()" class="btn bg-blue-100 text-blue-600 text-xs">+ 添加</button>
+      <button onclick="resetKeywords()" class="btn bg-gray-100 text-gray-600 text-xs">重置默认</button>
+      <button onclick="saveKeywords()" class="btn bg-green-500 text-white text-xs">保存</button>
+    </div>
+  </div>
+  <p class="text-xs text-gray-400 mb-3">系统每日根据关键词权重对已加工内容打分，取最高分的3条生成视频并发布。权重越高越优先。</p>
+  <table class="w-full text-sm" id="kw-table">
+    <thead class="text-gray-500 border-b">
+      <tr><th class="text-left py-2 w-6"></th><th class="text-left py-2">关键词</th><th class="text-left py-2 w-24">权重</th><th class="text-left py-2 w-16">启用</th><th class="w-10"></th></tr>
+    </thead>
+    <tbody id="kw-body"></tbody>
+  </table>
+</div>
+
+<script>
+const defaultKeywords = [
+  {keyword:"教育部",weight:100,enabled:true},
+  {keyword:"政策",weight:90,enabled:true},
+  {keyword:"心理健康",weight:80,enabled:true},
+  {keyword:"抑郁",weight:70,enabled:true},
+  {keyword:"焦虑",weight:70,enabled:true},
+  {keyword:"欺凌",weight:70,enabled:true},
+  {keyword:"网络成瘾",weight:60,enabled:true},
+  {keyword:"家庭教育",weight:60,enabled:true},
+  {keyword:"青春期",weight:50,enabled:true},
+  {keyword:"考试",weight:50,enabled:true},
+];
+
+async function loadKeywords() {
+  try { const r = await apiFetch('/api/settings/keywords'); renderRows(r.keywords || defaultKeywords); }
+  catch(e) { renderRows(defaultKeywords); }
+}
+function renderRows(kws) {
+  const tbody = document.getElementById('kw-body');
+  tbody.innerHTML = kws.map((kw,i) =>
+    '<tr class="border-b border-gray-50">' +
+    '<td class="py-2 text-gray-300 text-xs">'+(i+1)+'</td>' +
+    '<td class="py-2"><input value="'+kw.keyword+'" data-idx="'+i+'" data-field="keyword" class="w-full border rounded-lg px-2 py-1 text-sm"></td>' +
+    '<td class="py-2"><input type="number" value="'+kw.weight+'" data-idx="'+i+'" data-field="weight" min="1" max="200" class="w-20 border rounded-lg px-2 py-1 text-sm"></td>' +
+    '<td class="py-2"><input type="checkbox" data-idx="'+i+'" data-field="enabled"'+(kw.enabled?' checked':'')+' class="w-4 h-4"></td>' +
+    '<td class="py-2"><button onclick="this.closest(\'tr\').remove()" class="text-red-400 hover:text-red-600 text-xs">&times;</button></td>' +
+    '</tr>'
+  ).join('');
+}
+function collectRows() {
+  const rows = document.querySelectorAll('#kw-body tr');
+  const kws = [];
+  rows.forEach(row => {
+    const kw = row.querySelector('[data-field="keyword"]')?.value || '';
+    const wt = parseInt(row.querySelector('[data-field="weight"]')?.value) || 50;
+    const en = row.querySelector('[data-field="enabled"]')?.checked;
+    if (kw) kws.push({keyword:kw, weight:wt, enabled:en});
+  });
+  return kws;
+}
+async function saveKeywords() {
+  await apiFetch('/api/settings/keywords', 'PUT', {keywords: collectRows()});
+  alert('关键词优先级已保存');
+  loadKeywords();
+}
+async function resetKeywords() {
+  renderRows(defaultKeywords);
+  await apiFetch('/api/settings/keywords/reset', 'POST');
+}
+function addKeyword() {
+  const tbody = document.getElementById('kw-body');
+  const row = '<tr class="border-b border-gray-50"><td class="py-2 text-gray-300 text-xs">*</td>' +
+    '<td class="py-2"><input value="" data-field="keyword" class="w-full border rounded-lg px-2 py-1 text-sm" placeholder="新关键词"></td>' +
+    '<td class="py-2"><input type="number" value="50" data-field="weight" min="1" max="200" class="w-20 border rounded-lg px-2 py-1 text-sm"></td>' +
+    '<td class="py-2"><input type="checkbox" checked data-field="enabled" class="w-4 h-4"></td>' +
+    '<td class="py-2"><button onclick="this.closest(\'tr\').remove()" class="text-red-400 hover:text-red-600 text-xs">&times;</button></td></tr>';
+  tbody.insertAdjacentHTML('beforeend', row);
+}
+loadKeywords();
+
+async function saveKeys() {
+  const data = {
+    deepseek_api_key: document.getElementById('deepseek-key').value,
+    deepseek_base_url: document.getElementById('deepseek-base').value,
+    volcengine_api_key: document.getElementById('volcengine-key').value,
+  };
+  await apiFetch('/api/settings/api_key', 'PUT', data);
+  alert('API Keys 已保存');
+}
+async function saveSchedule() {
+  const trendingEnabled = document.getElementById('trending-enabled')?.value === 'true';
+  const sources = [];
+  ['weibo','zhihu','baidu','toutiao','douyin','bilibili','thepaper','wallstreetcn','cls','ifeng','tieba'].forEach(s => {
+    if (document.getElementById('src-'+s)?.checked) sources.push(s);
+  });
+  const data = {
+    collect_hour: parseInt(document.getElementById('collect-time').value.split(':')[0]),
+    collect_minute: parseInt(document.getElementById('collect-time').value.split(':')[1]),
+    process_hour: parseInt(document.getElementById('process-time').value.split(':')[0]),
+    process_minute: parseInt(document.getElementById('process-time').value.split(':')[1]),
+    video_hour: parseInt(document.getElementById('video-time').value.split(':')[0]),
+    video_minute: parseInt(document.getElementById('video-time').value.split(':')[1]),
+    publish_hour: parseInt(document.getElementById('publish-time').value.split(':')[0]),
+    publish_minute: parseInt(document.getElementById('publish-time').value.split(':')[1]),
+    max_per_day: parseInt(document.getElementById('max-per-day').value),
+    trending_enabled: trendingEnabled,
+    trending_sources: sources,
+    trending_multiplier: parseFloat(document.getElementById('trending-multiplier')?.value || '1.0'),
+  };
+  await apiFetch('/api/settings/schedule', 'PUT', data);
+  alert('调度配置已保存');
+}
+
+async function collectTrending() {
+  document.getElementById('trending-result').classList.remove('hidden');
+  document.getElementById('trending-result').textContent = '采集中...';
+  const r = await apiFetch('/api/trending/collect', 'POST');
+  document.getElementById('trending-result').textContent = '采集完成: ' + (r.keywords_collected || 0) + ' 个热词';
+  viewTrending();
+}
+async function viewTrending() {
+  document.getElementById('trending-result').classList.remove('hidden');
+  const r = await apiFetch('/api/trending/status');
+  const items = r.active_boosts || [];
+  document.getElementById('trending-result').innerHTML =
+    '<strong>活跃热词 ('+items.length+')</strong><br>' +
+    items.map(i => i.keyword + ' +' + i.boost).join(' | ');
+}
+async function clearTrending() {
+  await apiFetch('/api/trending/clear', 'POST');
+  document.getElementById('trending-result').innerHTML = '已清空';
+}
+</script>
+{% endblock %}

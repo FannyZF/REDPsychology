@@ -1,0 +1,48 @@
+{% extends "base.html.j2" %}
+{% block content %}
+<div class="grid grid-cols-2 gap-6">
+<div>
+<h3 class="font-semibold text-gray-700 mb-4">待发布队列 ({{ queue|length }})</h3>
+{% if queue %}
+<div class="space-y-3">
+{% for item in queue %}
+<div class="card p-4">
+  <div class="flex items-center justify-between mb-2">
+    <span class="pill bg-purple-100 text-purple-600">视频</span>
+    <span class="pill bg-yellow-100 text-yellow-700">{{ item.priority }}</span>
+  </div>
+  <p class="text-sm font-medium text-gray-700 mb-1">{{ (item.xhs_title or item.title)[:50] }}</p>
+  <p class="text-xs text-gray-400 mb-3">视频: {{ item.video_duration }}s</p>
+  <button onclick="publishOne('{{ item.id }}')" class="btn bg-green-500 text-white text-sm w-full">立即发布</button>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<div class="card p-8 text-center text-gray-400">暂无待发布内容</div>
+{% endif %}
+</div>
+
+<div>
+<h3 class="font-semibold text-gray-700 mb-4">发布历史 (最近20条)</h3>
+{% if published %}
+<div class="space-y-3">
+{% for item in published %}
+<div class="card p-4">
+  <div class="flex items-center gap-2 mb-1">
+    <span class="pill bg-green-100 text-green-600">已发布</span>
+    <span class="text-xs text-gray-400">{{ item.xhs_published_at[:16] }}</span>
+  </div>
+  <p class="text-sm text-gray-600 truncate">{{ (item.xhs_title or item.title)[:50] }}</p>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<div class="card p-8 text-center text-gray-400">暂无发布记录</div>
+{% endif %}
+</div>
+</div>
+
+<script>
+async function publishOne(id) { await apiFetch('/api/publish/'+id,'POST'); location.reload(); }
+</script>
+{% endblock %}

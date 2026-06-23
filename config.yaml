@@ -1,0 +1,71 @@
+sources:
+- name: 教育部
+  base_url: https://www.moe.gov.cn
+  list_url: https://www.moe.gov.cn/jyb_xwfb/
+  enabled: true
+  content_type: policy
+  credibility: official
+  selectors:
+    list_container: div.news_list li
+    title: a
+    link: a
+    date: span.date
+  article_selector:
+    content: div.article_content
+  pagination:
+    pattern: /jyb_xwfb/index_{page}.html
+    start: 1
+- name: 中国心理学会
+  base_url: https://www.cpsbeijing.org
+  list_url: https://www.cpsbeijing.org/cms/show.action?category_id=3
+  enabled: true
+  content_type: academic
+  credibility: academic
+  selectors:
+    list_container: ul.news-list li
+    title: h4 a
+    link: h4 a
+    date: span.time
+  article_selector:
+    content: div.content
+  pagination:
+    pattern: /cms/show.action?category_id=3&pageNo={page}
+    start: 1
+- name: 中国教育科学研究院
+  base_url: https://www.nies.net.cn
+  list_url: https://www.nies.net.cn/xwzx/
+  enabled: true
+  content_type: research
+  credibility: research
+  selectors:
+    list_container: div.news-con ul li
+    title: a
+    link: a
+    date: span
+  article_selector:
+    content: div.TRS_Editor
+  pagination:
+    pattern: /xwzx/index_{page}.html
+    start: 1
+llm:
+  provider: deepseek
+  model: deepseek-chat
+  base_url: https://api.deepseek.com
+  temperature_process: 0.3
+  temperature_content: 0.7
+  max_tokens: 4096
+video:
+  provider: volcengine
+  default_duration: 15
+  aspect_ratio: '9:16'
+  max_generate_per_run: 3
+  default_template: 清新治愈
+publish:
+  max_per_day: 1
+  publish_hour: 18
+  publish_minute: 0
+  publish_window_minutes: 30
+collection:
+  lookback_days: 1
+  max_concurrent_sources: 3
+  request_timeout: 30
