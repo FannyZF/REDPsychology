@@ -1,34 +1,56 @@
 {% extends "base.html.j2" %}
 {% block content %}
-<div class="max-w-lg mx-auto text-center">
-  <h2 class="text-xl font-bold text-gray-800 mb-2">小红书登录</h2>
-  <p class="text-gray-500 mb-6">点击下方按钮，在新标签页查看二维码，用小红书 App 扫码</p>
+<div class="max-w-lg mx-auto">
+  <h2 class="text-xl font-bold text-gray-800 mb-6 text-center">小红书登录</h2>
 
   <div class="card p-6 mb-6">
-    <button onclick="captureQR()" class="btn bg-orange-500 text-white text-lg w-full mb-4" id="capture-btn">1. 获取登录二维码</button>
-    <p id="capture-status" class="text-sm text-gray-400 hidden"></p>
-    <a id="qr-link" href="#" target="_blank" class="btn bg-blue-500 text-white w-full hidden">2. 打开二维码 (新标签页)</a>
+    <h3 class="font-semibold text-gray-700 mb-3">方式一：上传 Cookie（推荐）</h3>
+    <p class="text-sm text-gray-500 mb-4">
+      1. 电脑 Chrome 浏览器登录 <a href="https://creator.xiaohongshu.com" target="_blank" class="text-blue-500">小红书创作者中心</a><br>
+      2. 安装 <a href="https://chrome.google.com/webstore/detail/editthiscookie/fngmhnnpilhplaeedifhccceomclgfbg" target="_blank" class="text-blue-500">EditThisCookie</a> 插件<br>
+      3. 插件点导出 → 保存为 cookies.json<br>
+      4. 上传到下方
+    </p>
+    <input type="file" id="cookie-file" accept=".json" class="w-full border rounded-xl px-4 py-2 text-sm mb-3">
+    <button onclick="uploadCookies()" class="btn bg-green-500 text-white w-full">上传并导入 Cookie</button>
+    <p id="cookie-status" class="text-sm mt-2 text-center"></p>
+  </div>
+
+  <div class="card p-6 mb-6">
+    <h3 class="font-semibold text-gray-700 mb-3">方式二：扫码登录</h3>
+    <button onclick="captureQR()" class="btn bg-orange-500 text-white w-full mb-3" id="capture-btn">获取登录二维码</button>
+    <p id="capture-status" class="text-sm text-gray-400 text-center hidden"></p>
+    <a id="qr-link" href="#" target="_blank" class="btn bg-blue-500 text-white w-full hidden">打开二维码</a>
   </div>
 
   <div class="card p-6">
     <h3 class="font-semibold text-gray-700 mb-3">登录状态</h3>
-    <div id="check-result" class="text-sm text-gray-400">扫码完成后点击下方检测</div>
-    <button onclick="checkLogin()" class="btn bg-gray-100 text-sm mt-3">检测登录状态</button>
+    <div id="check-result" class="text-sm text-gray-400 text-center">点击下方检测</div>
+    <button onclick="checkLogin()" class="btn bg-gray-100 text-sm w-full mt-3">检测登录状态</button>
   </div>
-
-  <p class="text-xs text-gray-400 mt-6">登录态保存在 Cookie 中，重启后无需重复登录</p>
 </div>
 
 <script>
+async function uploadCookies() {
+  const file = document.getElementById('cookie-file').files[0];
+  if (!file) { alert('请选择 cookies.json 文件'); return; }
+  const form = new FormData();
+  form.append('file', file);
+  const el = document.getElementById('cookie-status');
+  el.textContent = '上传中...';
+  const resp = await fetch('/api/login/upload-cookies', {method:'POST', body: form});
+  const data = await resp.json();
+  el.textContent = data.message;
+  el.className = data.status === 'ok' ? 'text-sm text-green-500 text-center mt-2' : 'text-sm text-red-500 text-center mt-2';
+}
+
 async function captureQR() {
   document.getElementById('capture-btn').disabled = true;
-  document.getElementById('capture-btn').textContent = '正在获取...';
+  document.getElementById('capture-btn').textContent = '获取中...';
   document.getElementById('capture-status').classList.remove('hidden');
-  document.getElementById('capture-status').textContent = '正在打开小红书登录页...';
-  
+  document.getElementById('capture-status').textContent = '正在打开登录页...';
   await fetch('/api/login/qrcode', {method:'POST'});
-  
-  document.getElementById('capture-status').textContent = '二维码已获取，点击下方按钮查看';
+  document.getElementById('capture-status').textContent = '二维码已获取';
   document.getElementById('qr-link').classList.remove('hidden');
   document.getElementById('capture-btn').textContent = '重新获取';
   document.getElementById('capture-btn').disabled = false;
@@ -41,16 +63,10 @@ async function checkLogin() {
   try {
     const resp = await fetch('/api/login/check');
     const data = await resp.json();
-    if (data.logged_in) {
-      el.textContent = '已登录! 可以发布内容。';
-      el.className = 'text-sm text-green-500';
-    } else {
-      el.textContent = '未登录，请扫码后再次检测';
-      el.className = 'text-sm text-orange-500';
-    }
+    el.textContent = data.logged_in ? '已登录!' : '未登录';
+    el.className = data.logged_in ? 'text-sm text-green-500 text-center' : 'text-sm text-orange-500 text-center';
   } catch(e) {
-    el.textContent = '检测失败: ' + e.message;
-    el.className = 'text-sm text-red-500';
+    el.textContent = '检测失败';
   }
 }
 </script>

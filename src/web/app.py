@@ -3,7 +3,7 @@ import json
 import yaml
 from pathlib import Path
 
-from fastapi import FastAPI, Request, HTTPException, Query
+from fastapi import FastAPI, Request, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from jinja2 import Environment, FileSystemLoader
 
@@ -137,6 +137,44 @@ async def page_login(request: Request):
     return render("login.html.j2", {}, request)
 
 
+@app.post("/api/login/upload-cookies")
+async def api_upload_cookies(file: UploadFile = File(...)):
+    import json
+    content = await file.read()
+    try:
+        cookies = json.loads(content)
+    except json.JSONDecodeError:
+        raise HTTPException(400, "Invalid JSON format")
+
+    # Save cookies to file
+    cookie_path = ROOT_DIR / "data" / "cookies.json"
+    cookie_path.parent.mkdir(parents=True, exist_ok=True)
+    cookie_path.write_bytes(content)
+
+    # Inject cookies into Chrome profile
+    try:
+        from src.publisher.selenium_publisher import XiaohongshuPublisher
+        xhs = XiaohongshuPublisher(headless=True)
+        xhs.start()
+        xhs.driver.get("https://creator.xiaohongshu.com")
+        for c in cookies:
+            try:
+                xhs.driver.add_cookie(c)
+            except Exception:
+                pass
+        xhs.driver.get("https://creator.xiaohongshu.com")
+        import time; time.sleep(2)
+        try:
+            xhs.driver.find_element("xpath", "//*[contains(text(), '发布笔记')]")
+            xhs.close()
+            return {"status": "ok", "message": f"已导入 {len(cookies)} 个 Cookie，登录成功"}
+        except Exception:
+            xhs.close()
+            return {"status": "ok", "message": f"已导入 {len(cookies)} 个 Cookie，但未检测到登录状态，请检查Cookie是否有效"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 @app.post("/api/login/qrcode")
 async def api_login_qrcode():
     import threading, time
@@ -152,7 +190,6 @@ async def api_login_qrcode():
             ss = Path(ROOT_DIR / "output" / "screenshots" / "login_qr.png")
             ss.parent.mkdir(parents=True, exist_ok=True)
 
-            # Try multiple strategies to get just the QR code
             qr_selectors = [
                 "//img[contains(@src,'qrcode') or contains(@src,'qr')]",
                 "//canvas",
@@ -173,13 +210,11 @@ async def api_login_qrcode():
                     continue
 
             if not found:
-                # Take full screenshot and crop center (QR usually centered)
                 from PIL import Image
                 full = Path(ROOT_DIR / "output" / "screenshots" / "login_full.png")
                 xhs.driver.save_screenshot(str(full))
                 img = Image.open(full)
                 W, H = img.size
-                # Crop center 50% (QR typically in the middle third)
                 left, top = int(W * 0.25), int(H * 0.2)
                 right, bottom = int(W * 0.75), int(H * 0.7)
                 cropped = img.crop((left, top, right, bottom))
@@ -187,7 +222,6 @@ async def api_login_qrcode():
                 logger.info("QR captured via center crop")
 
             logger.info("QR captured, waiting for scan...")
-
             for i in range(60):
                 time.sleep(2)
                 try:
