@@ -116,8 +116,7 @@ class DailyPipeline:
             return {"success": 0, "failed": 0}
 
     def step_publish(self):
-        from src.publisher.selenium_publisher import XiaohongshuPublisher
-        from src.publisher.publish_service import ContentPublisher, PublishScheduler
+        from src.publisher.publish_service import PublishScheduler
 
         scheduler = PublishScheduler(self.store)
         can, reason = scheduler.can_publish_now()
@@ -130,26 +129,11 @@ class DailyPipeline:
             logger.info("[Daily] No items in publish queue")
             return {"published": 0}
 
-        logger.info("[Daily] Step 4: Publishing to Xiaohongshu...")
-        xhs = XiaohongshuPublisher(headless=True)
-        publisher = ContentPublisher(xhs, self.store)
-
-        try:
-            xhs.start()
-            if not xhs.ensure_login():
-                logger.error("[Daily] Login failed")
-                return {"published": 0, "reason": "login_failed"}
-            ok = publisher.publish_one(queue[0])
-            logger.info(f"[Daily] Publish result: {'success' if ok else 'failed'}")
-            return {"published": 1 if ok else 0}
-        except Exception as e:
-            logger.error(f"[Daily] Publish error: {e}")
-            return {"published": 0, "error": str(e)}
-        finally:
-            try:
-                xhs.close()
-            except Exception:
-                pass
+        item = queue[0]
+        logger.info(f"[Daily] Step 4: Marking content as published: {item.id[:8]}")
+        self.store.update_publish_status(item.id)
+        logger.info(f"[Daily] Content ready for download: {item.id[:8]}")
+        return {"published": 1}
 
     def run_full(self):
         logger.info("=" * 40)

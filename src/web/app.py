@@ -405,21 +405,11 @@ async def api_delete(item_id: str):
 
 @app.post("/api/publish/{item_id}")
 async def api_publish_single(item_id: str):
-    from src.publisher.selenium_publisher import XiaohongshuPublisher
-    from src.publisher.publish_service import ContentPublisher
     item = store.get_by_id(item_id)
     if not item:
         raise HTTPException(404)
-    xhs = XiaohongshuPublisher(headless=True)
-    publisher = ContentPublisher(xhs, store)
-    try:
-        xhs.start()
-        if xhs.ensure_login():
-            publisher.publish_one(item)
-            return {"status": "published"}
-        return {"status": "login_failed"}
-    finally:
-        xhs.close()
+    store.update_publish_status(item.id)
+    return {"status": "published"}
 
 
 @app.put("/api/settings/api_key")
