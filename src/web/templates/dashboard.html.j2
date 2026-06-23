@@ -62,14 +62,30 @@
 
 <script>
 async function action(cmd) {
-  document.getElementById('action-status').textContent = '执行中...';
-  const r = await apiFetch('/api/pipeline/'+cmd, 'POST');
-  document.getElementById('action-status').textContent = JSON.stringify(r).slice(0,100);
-  setTimeout(()=>location.reload(), 2000);
+  const el = document.getElementById('action-status');
+  el.textContent = '执行中，请稍候...';
+  el.className = 'text-sm text-orange-500 self-center ml-3';
+  try {
+    const r = await apiFetch('/api/pipeline/'+cmd, 'POST');
+    const msg = r.error ? '错误: '+r.error : ('完成: 新增'+r.total_new+'篇, 跳过'+r.total_skipped+'篇');
+    el.textContent = msg;
+    el.className = r.error ? 'text-sm text-red-500 self-center ml-3' : 'text-sm text-green-500 self-center ml-3';
+    setTimeout(() => location.reload(), 3000);
+  } catch(e) {
+    el.textContent = '请求失败: '+e.message;
+    el.className = 'text-sm text-red-500 self-center ml-3';
+  }
 }
 async function publishOne(id) {
-  await apiFetch('/api/publish/'+id, 'POST');
-  location.reload();
+  const el = document.getElementById('action-status');
+  el.textContent = '发布中...';
+  try {
+    await apiFetch('/api/publish/'+id, 'POST');
+    location.reload();
+  } catch(e) {
+    el.textContent = '发布失败: '+e.message;
+    el.className = 'text-sm text-red-500 self-center ml-3';
+  }
 }
 </script>
 {% endblock %}

@@ -68,4 +68,5 @@ publish:
 collection:
   lookback_days: 1
   max_concurrent_sources: 3
-  request_timeout: 30
+  request_timeout: 10
+  max_list_pages: 1
