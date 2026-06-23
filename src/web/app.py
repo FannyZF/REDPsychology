@@ -150,7 +150,21 @@ async def api_login_qrcode():
             time.sleep(5)
             ss = Path(ROOT_DIR / "output" / "screenshots" / "login_qr.png")
             ss.parent.mkdir(parents=True, exist_ok=True)
-            xhs.driver.save_screenshot(str(ss))
+
+            # Try to find and crop just the QR code element
+            try:
+                qr_el = xhs.driver.find_element("xpath", "//img[contains(@src,'qrcode') or contains(@src,'qr')]")
+                qr_el.screenshot(str(ss))
+                logger.info("QR element captured")
+            except Exception:
+                try:
+                    qr_el = xhs.driver.find_element("xpath", "//canvas")
+                    qr_el.screenshot(str(ss))
+                    logger.info("QR canvas captured")
+                except Exception:
+                    xhs.driver.save_screenshot(str(ss))
+                    logger.info("Full page screenshot fallback")
+
             logger.info("QR captured, waiting for scan...")
 
             for i in range(60):
