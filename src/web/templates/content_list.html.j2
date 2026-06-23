@@ -1,32 +1,40 @@
 {% extends "base.html.j2" %}
 {% block content %}
-<div class="flex gap-3 mb-6">
+<div class="flex gap-3 mb-4 flex-wrap items-center">
   <a href="/content" class="btn {% if not status_filter %}bg-gray-800 text-white{% else %}bg-gray-100{% endif %}">全部</a>
   <a href="/content?status=pending" class="btn {% if status_filter=='pending' %}bg-orange-500 text-white{% else %}bg-gray-100{% endif %}">待处理</a>
   <a href="/content?status=processed" class="btn {% if status_filter=='processed' %}bg-blue-500 text-white{% else %}bg-gray-100{% endif %}">已加工</a>
   <a href="/content?status=video_generated" class="btn {% if status_filter=='video_generated' %}bg-purple-500 text-white{% else %}bg-gray-100{% endif %}">待发布</a>
   <a href="/content?status=published" class="btn {% if status_filter=='published' %}bg-green-500 text-white{% else %}bg-gray-100{% endif %}">已发布</a>
   <a href="/content?status=failed" class="btn {% if status_filter=='failed' %}bg-red-500 text-white{% else %}bg-gray-100{% endif %}">失败</a>
+  <span class="flex-1"></span>
+  <button onclick="deleteSelected()" class="btn bg-red-500 text-white text-sm" id="del-btn" style="display:none">删除选中</button>
 </div>
 
-<div class="space-y-3">
+<div class="space-y-3" id="list">
 {% for item in items %}
 <div class="card p-4 flex items-center justify-between">
-  <div class="flex-1 min-w-0">
-    <div class="flex items-center gap-2 mb-1">
-      {% set badge_colors = {'pending':'bg-orange-100 text-orange-600','processed':'bg-blue-100 text-blue-600','video_generated':'bg-purple-100 text-purple-600','published':'bg-green-100 text-green-600','failed':'bg-red-100 text-red-600'} %}
-      <span class="pill {{ badge_colors.get(item.status, 'bg-gray-100') }}">{{ item.status }}</span>
-      {% if item.topic_category %}
-      <span class="pill bg-gray-100 text-gray-600">{{ item.topic_category }}</span>
-      {% endif %}
-      {% if item.priority %}
-      <span class="pill bg-yellow-100 text-yellow-700">{{ item.priority }}</span>
-      {% endif %}
+  <div class="flex items-center gap-3 flex-1 min-w-0">
+    <input type="checkbox" class="item-check" data-id="{{ item.id }}" onchange="updateDelBtn()">
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-2 mb-1">
+        {% set badge_colors = {'pending':'bg-orange-100 text-orange-600','processed':'bg-blue-100 text-blue-600','video_generated':'bg-purple-100 text-purple-600','published':'bg-green-100 text-green-600','failed':'bg-red-100 text-red-600'} %}
+        <span class="pill {{ badge_colors.get(item.status, 'bg-gray-100') }}">{{ item.status }}</span>
+        {% if item.topic_category %}
+        <span class="pill bg-gray-100 text-gray-600">{{ item.topic_category }}</span>
+        {% endif %}
+        {% if item.priority %}
+        <span class="pill bg-yellow-100 text-yellow-700">{{ item.priority }}</span>
+        {% endif %}
+      </div>
+      <a href="/content/{{ item.id }}" class="text-sm font-medium text-gray-800 hover:text-blue-500 block truncate">{{ item.title[:80] }}</a>
+      <span class="text-xs text-gray-400">{{ item.source }} · {{ item.published_at[:10] }}</span>
     </div>
-    <a href="/content/{{ item.id }}" class="text-sm font-medium text-gray-800 hover:text-blue-500 block truncate">{{ item.title[:80] }}</a>
-    <span class="text-xs text-gray-400">{{ item.source }} · {{ item.published_at[:10] }}</span>
   </div>
-  <a href="/content/{{ item.id }}" class="btn bg-gray-100 text-sm">详情</a>
+  <div class="flex gap-2 ml-3">
+    <a href="/content/{{ item.id }}" class="btn bg-gray-100 text-sm">详情</a>
+    <button onclick="delOne('{{ item.id }}', this)" class="btn bg-red-50 text-red-500 text-sm">删除</button>
+  </div>
 </div>
 {% endfor %}
 </div>
@@ -37,4 +45,26 @@
   <a href="?status={{ status_filter }}&page={{ page+1 }}" class="btn bg-gray-100">下一页</a>
 </div>
 {% endif %}
+
+<script>
+function updateDelBtn() {
+  const checked = document.querySelectorAll('.item-check:checked').length;
+  document.getElementById('del-btn').style.display = checked > 0 ? '' : 'none';
+}
+async function delOne(id, btn) {
+  if (!confirm('确认删除？')) return;
+  btn.textContent = '...';
+  await fetch('/api/content/'+id, {method:'DELETE'});
+  btn.closest('.card').remove();
+}
+async function deleteSelected() {
+  const checked = document.querySelectorAll('.item-check:checked');
+  if (!checked.length || !confirm('确认删除 '+checked.length+' 条？')) return;
+  for (const cb of checked) {
+    await fetch('/api/content/'+cb.dataset.id, {method:'DELETE'});
+    cb.closest('.card').remove();
+  }
+  updateDelBtn();
+}
+</script>
 {% endblock %}
