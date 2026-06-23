@@ -141,6 +141,7 @@ async def page_login(request: Request):
 async def api_login_qrcode():
     import threading, time
     from src.publisher.selenium_publisher import XiaohongshuPublisher
+    from selenium.webdriver.common.by import By
 
     def _capture():
         xhs = XiaohongshuPublisher(headless=True)
@@ -151,19 +152,39 @@ async def api_login_qrcode():
             ss = Path(ROOT_DIR / "output" / "screenshots" / "login_qr.png")
             ss.parent.mkdir(parents=True, exist_ok=True)
 
-            # Try to find and crop just the QR code element
-            try:
-                qr_el = xhs.driver.find_element("xpath", "//img[contains(@src,'qrcode') or contains(@src,'qr')]")
-                qr_el.screenshot(str(ss))
-                logger.info("QR element captured")
-            except Exception:
+            # Try multiple strategies to get just the QR code
+            qr_selectors = [
+                "//img[contains(@src,'qrcode') or contains(@src,'qr')]",
+                "//canvas",
+                "//div[contains(@class,'qrcode') or contains(@class,'qr')]//img",
+                "//div[contains(@class,'qrcode') or contains(@class,'qr')]//canvas",
+                "//*[contains(@class,'login')]//img",
+                "//*[contains(@class,'login')]//canvas",
+            ]
+            found = False
+            for sel in qr_selectors:
                 try:
-                    qr_el = xhs.driver.find_element("xpath", "//canvas")
-                    qr_el.screenshot(str(ss))
-                    logger.info("QR canvas captured")
+                    el = xhs.driver.find_element(By.XPATH, sel)
+                    el.screenshot(str(ss))
+                    logger.info(f"QR captured via: {sel}")
+                    found = True
+                    break
                 except Exception:
-                    xhs.driver.save_screenshot(str(ss))
-                    logger.info("Full page screenshot fallback")
+                    continue
+
+            if not found:
+                # Take full screenshot and crop center (QR usually centered)
+                from PIL import Image
+                full = Path(ROOT_DIR / "output" / "screenshots" / "login_full.png")
+                xhs.driver.save_screenshot(str(full))
+                img = Image.open(full)
+                W, H = img.size
+                # Crop center 50% (QR typically in the middle third)
+                left, top = int(W * 0.25), int(H * 0.2)
+                right, bottom = int(W * 0.75), int(H * 0.7)
+                cropped = img.crop((left, top, right, bottom))
+                cropped.save(str(ss))
+                logger.info("QR captured via center crop")
 
             logger.info("QR captured, waiting for scan...")
 
