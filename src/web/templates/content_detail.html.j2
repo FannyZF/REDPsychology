@@ -64,13 +64,13 @@
 <div class="card p-6">
   <h3 class="font-semibold text-gray-700 mb-3">视频 ({{ item.video_duration }}s)</h3>
   <video src="/api/content/{{ item.id }}/video" controls class="w-full rounded-lg mb-3" style="max-height:400px"></video>
-  <button onclick="revideo('{{ item.id }}')" class="btn bg-purple-100 text-purple-600 text-xs w-full">重新生成</button>
+  <button onclick="revideo('{{ item.id }}', this)" class="btn bg-purple-100 text-purple-600 text-xs w-full">重新生成</button>
 </div>
 {% elif item.status == 'processed' %}
 <div class="card p-6">
   <h3 class="font-semibold text-gray-700 mb-3">视频</h3>
   <p class="text-sm text-gray-400 mb-3">尚未生成</p>
-  <button onclick="revideo('{{ item.id }}')" class="btn bg-purple-500 text-white text-sm w-full">生成视频</button>
+  <button onclick="revideo('{{ item.id }}', this)" class="btn bg-purple-500 text-white text-sm w-full">生成视频</button>
 </div>
 {% endif %}
 
@@ -98,7 +98,23 @@
 
 <script>
 async function reprocess(id) { await apiFetch('/api/content/'+id+'/reprocess','POST'); location.reload(); }
-async function revideo(id) { await apiFetch('/api/content/'+id+'/revideo','POST'); location.reload(); }
+async function revideo(id, btn) {
+  btn.disabled = true;
+  btn.textContent = '生成中(约2-5分钟)...';
+  try {
+    const r = await apiFetch('/api/content/'+id+'/revideo','POST');
+    if (r.status === 'ok') {
+      btn.textContent = '完成! 刷新中...';
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      btn.textContent = '失败: '+ (r.status || '未知错误');
+      btn.disabled = false;
+    }
+  } catch(e) {
+    btn.textContent = '请求失败, 查看日志: docker compose logs -f app';
+    btn.disabled = false;
+  }
+}
 async function publishOne(id) { await apiFetch('/api/publish/'+id,'POST'); location.reload(); }
 </script>
 {% endblock %}
