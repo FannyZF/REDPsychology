@@ -80,14 +80,22 @@ class DailyPipeline:
             logger.info("[Daily] No items matched keyword priority")
             return {"success": 0, "failed": 0}
 
-        # Check video.enabled config
+        # Check video.enabled from both config.yaml and schedule.json
+        video_enabled = True
         try:
             import yaml
             with open("/app/config.yaml", "r") as f:
                 cfg = yaml.safe_load(f)
             video_enabled = cfg.get("video", {}).get("enabled", True)
         except Exception:
-            video_enabled = True
+            pass
+        try:
+            from src.utils.config_store import load as load_schedule
+            sch = load_schedule()
+            if "video_enabled" in sch:
+                video_enabled = sch["video_enabled"]
+        except Exception:
+            pass
 
         if not video_enabled:
             from src.video_generator.cover import generate_cover
