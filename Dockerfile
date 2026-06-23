@@ -29,7 +29,8 @@ RUN mkdir -p /app/output/videos \
     /app/output/text \
     /app/data \
     /app/logs \
-    /app/data/chrome_profile
+    /app/data/chrome_profile \
+    /app/assets/templates
 
 EXPOSE 8998
 

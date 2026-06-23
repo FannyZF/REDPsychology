@@ -31,10 +31,12 @@ elif platform.system() == "Darwin":
 else:
     FONT_NAME = "Noto Sans CJK SC"
 
-VIDEO_DIR.mkdir(parents=True, exist_ok=True)
-SUBTITLE_DIR.mkdir(parents=True, exist_ok=True)
-MUSIC_DIR.mkdir(parents=True, exist_ok=True)
-TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+try: VIDEO_DIR.mkdir(parents=True, exist_ok=True)
+except OSError: pass
+try: SUBTITLE_DIR.mkdir(parents=True, exist_ok=True)
+except OSError: pass
+# MUSIC_DIR created in Dockerfile
+# TEMPLATES_DIR created in Dockerfile
 
 
 def _build_ass(content_id: str, title: str, core_points: list[str],
