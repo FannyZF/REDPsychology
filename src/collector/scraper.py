@@ -296,9 +296,11 @@ class ConfigDrivenScraper:
         if existing_urls is None:
             existing_urls = set()
 
-        cutoff_date = None
-        if lookback_days > 0:
-            cutoff_date = (datetime.now(tz_utc8) - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
+        source_lookback = source_config.get("lookback_days", lookback_days)
+        if source_lookback <= 0:
+            cutoff_date = None
+        else:
+            cutoff_date = (datetime.now(tz_utc8) - timedelta(days=source_lookback)).strftime("%Y-%m-%d")
 
         list_items = await self.fetch_list(source_config)
         logger.info(f"Fetched {len(list_items)} list items from {source_config.get('name', 'unknown')}")
