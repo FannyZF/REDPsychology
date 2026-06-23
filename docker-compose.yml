@@ -16,4 +16,4 @@ services:
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
       - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       - VOLCENGINE_API_KEY=${VOLCENGINE_API_KEY:-}
-    shm_size: "2gb"
+    shm_size: "256m"
