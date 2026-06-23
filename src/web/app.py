@@ -139,38 +139,54 @@ async def page_login(request: Request):
 
 @app.post("/api/login/upload-cookies")
 async def api_upload_cookies(file: UploadFile = File(...)):
-    import json
+    import json, time
     content = await file.read()
     try:
         cookies = json.loads(content)
     except json.JSONDecodeError:
         raise HTTPException(400, "Invalid JSON format")
 
-    # Save cookies to file
     cookie_path = ROOT_DIR / "data" / "cookies.json"
     cookie_path.parent.mkdir(parents=True, exist_ok=True)
     cookie_path.write_bytes(content)
 
-    # Inject cookies into Chrome profile
     try:
         from src.publisher.selenium_publisher import XiaohongshuPublisher
         xhs = XiaohongshuPublisher(headless=True)
         xhs.start()
+        # Add .xiaohongshu.com cookies on main domain
+        xhs.driver.get("https://www.xiaohongshu.com")
+        for c in cookies:
+            domain = c.get("domain", "")
+            if "creator" not in domain:
+                try:
+                    cookie_dict = {
+                        "name": c["name"], "value": c["value"],
+                        "domain": c.get("domain", ""), "path": c.get("path", "/"),
+                    }
+                    xhs.driver.add_cookie(cookie_dict)
+                except Exception:
+                    pass
+        # Add creator-specific cookies
         xhs.driver.get("https://creator.xiaohongshu.com")
         for c in cookies:
             try:
-                xhs.driver.add_cookie(c)
+                cookie_dict = {
+                    "name": c["name"], "value": c["value"],
+                    "domain": c.get("domain", ""), "path": c.get("path", "/"),
+                }
+                xhs.driver.add_cookie(cookie_dict)
             except Exception:
                 pass
-        xhs.driver.get("https://creator.xiaohongshu.com")
-        import time; time.sleep(2)
+        xhs.driver.refresh()
+        time.sleep(2)
         try:
             xhs.driver.find_element("xpath", "//*[contains(text(), '发布笔记')]")
             xhs.close()
-            return {"status": "ok", "message": f"已导入 {len(cookies)} 个 Cookie，登录成功"}
+            return {"status": "ok", "message": f"Cookie 导入成功，已登录"}
         except Exception:
             xhs.close()
-            return {"status": "ok", "message": f"已导入 {len(cookies)} 个 Cookie，但未检测到登录状态，请检查Cookie是否有效"}
+            return {"status": "error", "message": "Cookie 已导入但未检测到登录态，请确保 Cookie 有效"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
