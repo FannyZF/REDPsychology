@@ -50,7 +50,7 @@
   {% for item in queue %}
     <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
       <div class="flex-1 min-w-0">
-        <span class="text-xs bg-purple-100 text-purple-600 pill mr-2">视频</span>
+        <span class="text-xs pill mr-2 {% if item.video_path and '.png' in item.video_path %}bg-blue-100 text-blue-600{% else %}bg-purple-100 text-purple-600{% endif %}">{% if item.video_path and '.png' in item.video_path %}图文{% else %}视频{% endif %}</span>
         <a href="/content/{{ item.id }}" class="text-sm font-medium text-gray-700 hover:text-blue-500 truncate">{{ (item.xhs_title or item.title)[:50] }}</a>
       </div>
       <button onclick="publishOne('{{ item.id }}')" class="btn bg-green-500 text-white text-xs">发布</button>

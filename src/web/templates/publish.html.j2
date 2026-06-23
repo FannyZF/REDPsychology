@@ -10,8 +10,12 @@
 {% for item in queue %}
 <div class="card p-4">
   <div class="flex items-center gap-2 mb-2">
-    {% if item.get('video_path') %}
+    {% if item.get('video_path', '').endswith('.png') %}
+    <span class="pill bg-blue-100 text-blue-600">图文</span>
+    <a href="/api/content/{{ item.id }}/video" download class="btn bg-blue-500 text-white text-xs">下载封面图</a>
+    {% elif item.get('video_path') %}
     <span class="pill bg-purple-100 text-purple-600">视频</span>
+    <a href="/api/content/{{ item.id }}/video" download class="btn bg-purple-500 text-white text-xs">下载视频</a>
     {% else %}
     <span class="pill bg-blue-100 text-blue-600">图文</span>
     {% endif %}
