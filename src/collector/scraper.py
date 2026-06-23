@@ -328,10 +328,10 @@ class ConfigDrivenScraper:
                     text = await self.fetch_article(url, source_config.get("article_selector", {}))
                     item["content"] = text
                     articles.append(item)
-                existing_urls.add(url)
-            except Exception as e:
-                logger.warning(f"Failed to fetch article {url}: {e}")
-                continue
+                    existing_urls.add(url)
+                except Exception as e:
+                    logger.warning(f"Failed to fetch article {url}: {e}")
+                    continue
 
         logger.info(
             f"Collected {len(articles)} new articles from {source_config.get('name', 'unknown')} "
