@@ -26,6 +26,34 @@ sources:
       date: pubDate
       summary: description
 
+  - name: ChildMindInstitute(儿童心理健康)
+    base_url: https://childmind.org
+    list_url: https://childmind.org/feed/
+    enabled: true
+    content_type: public
+    credibility: high
+    source_type: rss
+    lookback_days: 7
+    selectors:
+      title: title
+      link: link
+      date: pubDate
+      summary: description
+
+  - name: ACAMH(英国儿童青少年心理健康协会)
+    base_url: https://www.acamh.org
+    list_url: https://www.acamh.org/feed/
+    enabled: true
+    content_type: academic
+    credibility: academic
+    source_type: rss
+    lookback_days: 7
+    selectors:
+      title: title
+      link: link
+      date: pubDate
+      summary: description
+
   - name: NIMH(美国精神卫生研究院)
     base_url: https://www.nimh.nih.gov
     list_url: https://www.nimh.nih.gov/site-info/feed-rss.xml
