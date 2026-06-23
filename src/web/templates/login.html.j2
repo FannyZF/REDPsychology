@@ -42,8 +42,9 @@ async function pollLogin() {
   for (let i = 0; i < 60; i++) {
     await new Promise(r => setTimeout(r, 2000));
     try {
-      const resp = await fetch('/api/stats');
-      if (resp.ok) {
+      const resp = await fetch('/api/login/check');
+      const data = await resp.json();
+      if (data.logged_in) {
         el.textContent = '登录成功! 3秒后跳转...';
         setTimeout(() => location.href = '/', 3000);
         return;
@@ -58,14 +59,18 @@ async function checkLogin() {
   const el = document.getElementById('check-result');
   el.textContent = '检测中...';
   try {
-    const resp = await fetch('/api/stats');
-    if (resp.ok) {
+    const resp = await fetch('/api/login/check');
+    const data = await resp.json();
+    if (data.logged_in) {
       el.textContent = '已登录! 可以发布内容。';
       el.className = 'text-sm text-green-500';
+    } else {
+      el.textContent = '未登录，请先获取二维码扫码';
+      el.className = 'text-sm text-orange-500';
     }
   } catch(e) {
-    el.textContent = '未登录，请先获取二维码扫码';
-    el.className = 'text-sm text-orange-500';
+    el.textContent = '检测失败: ' + e.message;
+    el.className = 'text-sm text-red-500';
   }
 }
 </script>

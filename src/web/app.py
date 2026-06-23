@@ -173,18 +173,35 @@ async def api_login_qrcode():
     return {"status": "capturing"}
 
 
-@app.get("/api/login/qrcode-image")
-async def api_login_qrcode_image():
-    import base64
-    ss = Path(ROOT_DIR / "output" / "screenshots" / "login_qr.png")
-    if not ss.exists():
-        raise HTTPException(404, "QR not ready yet, retry in a few seconds")
-    with open(ss, "rb") as f:
-        data = base64.b64encode(f.read()).decode()
-    return HTMLResponse(
-        f'<html><body style="background:#000;display:flex;justify-content:center;align-items:center;height:100vh;margin:0">'
-        f'<img src="data:image/png;base64,{data}" style="max-width:100%;max-height:100vh"></body></html>'
-    )
+@app.get("/api/login/check")
+async def api_login_check():
+    import threading
+    try:
+        from src.publisher.selenium_publisher import XiaohongshuPublisher
+        result = {"logged_in": False}
+
+        def _check():
+            xhs = XiaohongshuPublisher(headless=True)
+            try:
+                xhs.start()
+                xhs.driver.get("https://creator.xiaohongshu.com")
+                import time; time.sleep(2)
+                try:
+                    xhs.driver.find_element("xpath", "//*[contains(text(), '发布笔记')]")
+                    result["logged_in"] = True
+                except Exception:
+                    pass
+            except Exception:
+                pass
+            finally:
+                xhs.close()
+
+        t = threading.Thread(target=_check, daemon=True)
+        t.start()
+        t.join(timeout=15)
+        return result
+    except Exception as e:
+        return {"logged_in": False, "error": str(e)}
 
 
 @app.get("/api/content/{item_id}/video")
