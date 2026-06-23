@@ -1,54 +1,29 @@
 sources:
   - name: APA(美国心理学会)
     base_url: https://www.apa.org
-    list_url: https://www.apa.org/news/press/releases
+    list_url: https://www.apa.org/rss/news-rss.xml
     enabled: true
     content_type: academic
     credibility: academic
+    source_type: rss
     selectors:
-      list_container: ul.news-list li
-      title: h3 a
-      link: h3 a
-      date: span.date
-    article_selector:
-      content: div.main-content
-    pagination:
-      pattern: /news/press/releases?page={page}
-      start: 1
+      title: title
+      link: link
+      date: pubDate
+      summary: description
 
   - name: ScienceDaily(儿童发展)
     base_url: https://www.sciencedaily.com
-    list_url: https://www.sciencedaily.com/news/mind_brain/child_development/
+    list_url: https://www.sciencedaily.com/rss/mind_brain/child_development.xml
     enabled: true
     content_type: research
     credibility: research
+    source_type: rss
     selectors:
-      list_container: div.latest-headlines ul li
-      title: a
-      link: a
-      date: span
-    article_selector:
-      content: article#text
-    pagination:
-      pattern: ''
-      start: 1
-
-  - name: Edutopia(教育心理学)
-    base_url: https://www.edutopia.org
-    list_url: https://www.edutopia.org/topic/social-emotional-learning
-    enabled: true
-    content_type: public
-    credibility: high
-    selectors:
-      list_container: article.node
-      title: h2 a
-      link: h2 a
-      date: span.date
-    article_selector:
-      content: div.body-content
-    pagination:
-      pattern: '?page={page}'
-      start: 1
+      title: title
+      link: link
+      date: pubDate
+      summary: description
 
   - name: NIMH(美国精神卫生研究院)
     base_url: https://www.nimh.nih.gov
@@ -66,6 +41,19 @@ sources:
     pagination:
       pattern: '?page={page}'
       start: 1
+
+  - name: Edutopia(教育心理学)
+    base_url: https://www.edutopia.org
+    list_url: https://www.edutopia.org/rss.xml
+    enabled: true
+    content_type: public
+    credibility: high
+    source_type: rss
+    selectors:
+      title: title
+      link: link
+      date: pubDate
+      summary: description
 
   - name: 教育部
     base_url: https://www.moe.gov.cn

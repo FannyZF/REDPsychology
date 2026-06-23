@@ -2,6 +2,7 @@ import re
 import asyncio
 from datetime import datetime, timezone, timedelta
 from urllib.parse import urljoin, urlparse
+import xml.etree.ElementTree as ET
 
 import httpx
 from bs4 import BeautifulSoup
@@ -123,9 +124,89 @@ class ConfigDrivenScraper:
         return urljoin(base_url, link)
 
     async def fetch_list(self, source_config: dict) -> list[dict]:
+        source_type = source_config.get("source_type", "html")
+        if source_type == "rss":
+            return await self._fetch_rss(source_config)
+        return await self._fetch_html(source_config)
+
+    async def _fetch_rss(self, source_config: dict) -> list[dict]:
         results = []
         selectors = source_config.get("selectors", {})
-        article_selector = source_config.get("article_selector", {})
+        list_url = source_config.get("list_url", "")
+        base_url = source_config.get("base_url", "")
+
+        async with self._build_client() as client:
+            try:
+                html = await self._fetch(client, list_url)
+            except Exception as e:
+                logger.error(f"Failed to fetch RSS {list_url}: {e}")
+                return []
+
+            try:
+                root = ET.fromstring(html)
+            except ET.ParseError:
+                logger.error(f"Failed to parse RSS XML from {list_url}")
+                return []
+
+            ns = {"dc": "http://purl.org/dc/elements/1.1/"}
+            for item in root.iter("item"):
+                title_el = item.find(selectors.get("title", "title"))
+                title = title_el.text.strip() if title_el is not None and title_el.text else ""
+
+                link_el = item.find(selectors.get("link", "link"))
+                link = link_el.text.strip() if link_el is not None and link_el.text else ""
+
+                date_el = item.find(selectors.get("date", "pubDate"))
+                raw_date = date_el.text.strip() if date_el is not None and date_el.text else ""
+                parsed_date = self._parse_date(raw_date)
+
+                if not parsed_date and raw_date:
+                    from email.utils import parsedate_to_datetime
+                    try:
+                        parsed = parsedate_to_datetime(raw_date)
+                        parsed_date = parsed.strftime("%Y-%m-%d")
+                    except Exception:
+                        pass
+
+                summary_el = item.find(selectors.get("summary", "description"))
+                summary = summary_el.text.strip() if summary_el is not None and summary_el.text else ""
+
+                dc_creator = item.find("dc:creator", ns)
+                if dc_creator is None:
+                    dc_creator = item.find("{http://purl.org/dc/elements/1.1/}creator")
+                source_name = dc_creator.text if dc_creator is not None else source_config.get("name", "")
+
+                # RSS feed content as original_text (avoids separate article fetch)
+                content_parts = [summary]
+                content_encoded = item.find("{http://purl.org/rss/1.0/modules/content/}encoded")
+                if content_encoded is not None and content_encoded.text:
+                    content_parts.append(content_encoded.text)
+
+                original_text = " ".join(p for p in content_parts if p)
+
+                if not original_text:
+                    original_text = summary
+
+                if link:
+                    link = self._resolve_url(base_url, link)
+
+                if not title or not link:
+                    continue
+
+                results.append({
+                    "title": title,
+                    "url": link,
+                    "date": parsed_date,
+                    "raw_date": raw_date,
+                    "summary": summary,
+                    "content": original_text,
+                    "source": source_name or source_config.get("name", ""),
+                })
+
+            logger.info(f"RSS {source_config.get('name','?')}: {len(results)} items")
+        return results
+
+    async def _fetch_html(self, source_config: dict) -> list[dict]:
         pagination = source_config.get("pagination", {})
         base_url = source_config.get("base_url", "")
         list_url = source_config.get("list_url", "")
@@ -236,10 +317,15 @@ class ConfigDrivenScraper:
                 skipped_old += 1
                 continue
 
-            try:
-                text = await self.fetch_article(url, source_config.get("article_selector", {}))
-                item["content"] = text
+            is_rss = source_config.get("source_type") == "rss"
+            if is_rss and item.get("content"):
                 articles.append(item)
+                existing_urls.add(url)
+            else:
+                try:
+                    text = await self.fetch_article(url, source_config.get("article_selector", {}))
+                    item["content"] = text
+                    articles.append(item)
                 existing_urls.add(url)
             except Exception as e:
                 logger.warning(f"Failed to fetch article {url}: {e}")
