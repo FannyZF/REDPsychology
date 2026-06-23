@@ -151,7 +151,19 @@ async def api_login_qrcode():
             ss = Path(ROOT_DIR / "output" / "screenshots" / "login_qr.png")
             ss.parent.mkdir(parents=True, exist_ok=True)
             xhs.driver.save_screenshot(str(ss))
-            logger.info("QR captured")
+            logger.info("QR captured, waiting for scan...")
+
+            for i in range(60):
+                time.sleep(2)
+                try:
+                    xhs.driver.get("https://creator.xiaohongshu.com")
+                    xhs.driver.find_element("xpath", "//*[contains(text(), '发布笔记')]")
+                    logger.info("Login successful via QR scan!")
+                    xhs.driver.save_screenshot(str(ss))
+                    break
+                except Exception:
+                    if i % 5 == 0:
+                        logger.info(f"Waiting for scan... ({(i+1)*2}s)")
         except Exception as e:
             logger.error(f"QR failed: {e}")
         finally:
