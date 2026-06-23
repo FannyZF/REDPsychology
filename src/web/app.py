@@ -120,6 +120,13 @@ async def page_settings(request: Request):
         h = schedule.get(f"{prefix}_hour", 0)
         m = schedule.get(f"{prefix}_minute", 0)
         time_fields[f"{prefix}_time"] = f"{h:02d}:{m:02d}"
+    # Also load from config.yaml for video.enabled
+    try:
+        import yaml
+        cfg = load_yaml_config()
+        schedule["video_enabled"] = cfg.get("video", {}).get("enabled", True)
+    except Exception:
+        pass
     return render("settings.html.j2", {
         "keys": keys, "schedule": schedule, "time": time_fields,
     }, request)

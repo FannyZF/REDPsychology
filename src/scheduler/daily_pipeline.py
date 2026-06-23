@@ -65,15 +65,8 @@ class DailyPipeline:
         return result
 
     async def step_video(self):
-        from src.video_generator.composer import generate_all
         from src.processor.scorer import select_top, score_content
         from src.utils.keyword_store import load as load_kw_config
-
-        keys = load_keys()
-        volc_key = keys.get("volcengine_api_key", "")
-        if not volc_key:
-            logger.warning("[Daily] Skipping video: no Volcengine API key")
-            return {"success": 0, "failed": 0}
 
         processed = self.store.get_processed(limit=50)
         if not processed:
@@ -87,12 +80,33 @@ class DailyPipeline:
             logger.info("[Daily] No items matched keyword priority")
             return {"success": 0, "failed": 0}
 
-        logger.info(f"[Daily] Step 3: Video generation ({len(top_items)} scored items selected)...")
-        scores_str = ", ".join(f"{it.id[:6]}({sc})" for sc, it in
-            sorted([(score_content(it, kw_config), it) for it in top_items], key=lambda x: x[0], reverse=True))
-        logger.info(f"[Daily] Selected: {scores_str}")
-        result = await generate_all(self.store, max_count=3, specific_items=top_items)
-        return result
+        # Check video.enabled config
+        try:
+            import yaml
+            with open("/app/config.yaml", "r") as f:
+                cfg = yaml.safe_load(f)
+            video_enabled = cfg.get("video", {}).get("enabled", True)
+        except Exception:
+            video_enabled = True
+
+        if not video_enabled:
+            from src.video_generator.cover import generate_cover, COLORS
+            logger.info(f"[Daily] Video disabled, generating covers for {len(top_items)} items")
+            for i, item in enumerate(top_items):
+                col = COLORS[i % len(COLORS)]
+                path = generate_cover(item.id[:8], item.xhs_title or item.title,
+                                      item.topic_category, col)
+                if path:
+                    self.store.update_video_status(item.id, path, 0)
+                    logger.info(f"Cover: {item.id[:8]}")
+            return {"success": len(top_items), "failed": 0}
+
+        from src.video_generator.composer import generate_all
+        keys = load_keys()
+        volc_key = keys.get("volcengine_api_key", "")
+        if not volc_key:
+            logger.warning("[Daily] Skipping video: no Volcengine API key")
+            return {"success": 0, "failed": 0}
 
     def step_publish(self):
         from src.publisher.selenium_publisher import XiaohongshuPublisher

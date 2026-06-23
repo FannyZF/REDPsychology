@@ -159,6 +159,7 @@ video:
   aspect_ratio: '9:16'
   max_generate_per_run: 3
   default_template: 清新治愈
+  enabled: true
 publish:
   max_per_day: 1
   publish_hour: 18

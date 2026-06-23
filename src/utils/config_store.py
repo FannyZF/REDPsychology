@@ -16,6 +16,10 @@ DEFAULT_SCHEDULE = {
     "publish_minute": 0,
     "max_per_day": 1,
     "publish_window_minutes": 30,
+    "video_enabled": True,
+    "trending_enabled": True,
+    "trending_sources": ["weibo"],
+    "trending_multiplier": 1.0,
 }
 
 
