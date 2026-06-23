@@ -173,6 +173,15 @@ async def api_login_qrcode():
     return {"status": "capturing"}
 
 
+@app.get("/api/login/qrcode-image")
+async def api_login_qrcode_image():
+    from fastapi.responses import FileResponse
+    ss = Path(ROOT_DIR / "output" / "screenshots" / "login_qr.png")
+    if not ss.exists():
+        raise HTTPException(404, "QR not ready yet, retry in a few seconds")
+    return FileResponse(str(ss), media_type="image/png")
+
+
 @app.get("/api/login/check")
 async def api_login_check():
     import threading
