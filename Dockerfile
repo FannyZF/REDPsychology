@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-noto-cjk \
     ffmpeg \
     ca-certificates \
+    libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | \

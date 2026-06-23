@@ -257,7 +257,7 @@ class VideoComposer:
         if narration_segments:
             actual_duration = total_narration_dur + 2.5
             actual_duration = max(actual_duration, 10.0)
-            actual_duration = min(actual_duration, 20.0)
+            actual_duration = min(actual_duration, 12.0)  # Seedance fast model max 12s
             logger.info(f"Video target duration: {actual_duration:.1f}s (TTS: {total_narration_dur:.1f}s)")
 
         # Step 2: Generate video at TTS-matched duration
