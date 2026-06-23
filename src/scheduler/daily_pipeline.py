@@ -90,12 +90,11 @@ class DailyPipeline:
             video_enabled = True
 
         if not video_enabled:
-            from src.video_generator.cover import generate_cover, COLORS
-            logger.info(f"[Daily] Video disabled, generating covers for {len(top_items)} items")
-            for i, item in enumerate(top_items):
-                col = COLORS[i % len(COLORS)]
-                path = generate_cover(item.id[:8], item.xhs_title or item.title,
-                                      item.topic_category, col)
+            from src.video_generator.cover import generate_cover
+            logger.info(f"[Daily] Video disabled, generating AI cover images for {len(top_items)} items")
+            for item in top_items:
+                path = await generate_cover(item.id[:8], item.xhs_title or item.title,
+                                            item.topic_category)
                 if path:
                     self.store.update_video_status(item.id, path, 0)
                     logger.info(f"Cover: {item.id[:8]}")

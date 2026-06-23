@@ -1,103 +1,93 @@
+import httpx
 from pathlib import Path
-import textwrap
 
 from src.utils.logger import get_logger
+from src.utils.key_store import load as load_keys
 
 logger = get_logger(__name__)
 
-ROOT_DIR = Path(__file__).parent.parent.parent
-OUTPUT_DIR = ROOT_DIR / "output" / "thumbnails"
+ARK_BASE = "https://ark.cn-beijing.volces.com/api/v3"
+IMAGE_MODEL = "doubao-seedream-4-0-250828"
+
+OUTPUT_DIR = Path(__file__).parent.parent.parent / "output" / "thumbnails"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-WIDTH, HEIGHT = 1080, 1440
 
-
-def generate_cover(content_id: str, title: str, category: str = "",
-                   color: str = "#4A90D9") -> str:
-    try:
-        from PIL import Image, ImageDraw, ImageFont
-    except ImportError:
-        logger.error("Pillow not installed. Run: pip install Pillow")
+async def generate_cover(content_id: str, title: str, category: str = "") -> str:
+    keys = load_keys()
+    api_key = keys.get("volcengine_api_key", "")
+    if not api_key:
+        logger.error("No Volcengine API key")
         return ""
 
-    img = Image.new("RGB", (WIDTH, HEIGHT), color)
-    draw = ImageDraw.Draw(img)
+    prompt = _build_image_prompt(title, category)
 
-    font_large = _get_font(60)
-    font_small = _get_font(36)
+    async with httpx.AsyncClient(timeout=httpx.Timeout(60)) as c:
+        resp = await c.post(
+            f"{ARK_BASE}/images/generations",
+            json={
+                "model": IMAGE_MODEL,
+                "prompt": prompt,
+                "size": "1080x1440",
+            },
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+        )
+        if resp.status_code != 200:
+            logger.error(f"Image generation failed: {resp.status_code} {resp.text[:200]}")
+            return ""
 
-    if font_large:
-        wrapped = textwrap.fill(title, width=18)
-        bbox = draw.multiline_textbbox((0, 0), wrapped, font=font_large)
-        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        x = (WIDTH - tw) // 2
-        y = (HEIGHT - th) // 2 - 40
-        draw.multiline_text((x, y), wrapped, fill="white", font=font_large,
-                            align="center", spacing=20)
+        data = resp.json()
+        image_url = ""
+        for d in data.get("data", []):
+            image_url = d.get("url", "")
+            if image_url:
+                break
 
-    if font_small and category:
-        cat_text = f"—— {category} ——"
-        bbox = draw.textbbox((0, 0), cat_text, font=font_small)
-        cw = bbox[2] - bbox[0]
-        draw.text(((WIDTH - cw) // 2, HEIGHT - 120), cat_text,
-                  fill="rgba(255,255,255,180)", font=font_small)
+        if not image_url:
+            logger.error(f"No image_url in response")
+            return ""
 
-    path = OUTPUT_DIR / f"{content_id}.png"
-    img.save(str(path), "PNG")
-    logger.info(f"Cover generated: {path}")
-    return str(path)
-
-
-def _get_font(size: int):
-    import platform
-    candidates = []
-    if platform.system() == "Windows":
-        candidates = [
-            "C:/Windows/Fonts/msyh.ttc",
-            "C:/Windows/Fonts/simhei.ttf",
-            "C:/Windows/Fonts/simsun.ttc",
-        ]
-    elif platform.system() == "Darwin":
-        candidates = [
-            "/System/Library/Fonts/PingFang.ttc",
-            "/System/Library/Fonts/STHeiti Light.ttc",
-        ]
-    else:
-        candidates = [
-            "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
-            "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
-            "/usr/share/fonts/noto-cjk/NotoSansCJK-Bold.ttc",
-            "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
-        ]
-
-    try:
-        from PIL import ImageFont
-        for c in candidates:
-            if Path(c).exists():
-                return ImageFont.truetype(c, size)
-    except Exception:
-        pass
-    try:
-        from PIL import ImageFont
-        return ImageFont.truetype(size=size)
-    except Exception:
-        return None
+        img_resp = await c.get(image_url)
+        path = OUTPUT_DIR / f"{content_id}.png"
+        path.write_bytes(img_resp.content)
+        logger.info(f"Cover image generated: {path}")
+        return str(path)
 
 
-COLORS = [
-    "#4A90D9", "#7B68EE", "#2E86AB", "#A23B72",
-    "#F18F01", "#C73E1D", "#3B1F2B", "#1B998B",
-]
+def _build_image_prompt(title: str, category: str = "") -> str:
+    parts = [
+        "A warm and inviting social media cover image for a parenting and child psychology article.",
+        "Soft pastel color palette with gentle gradients, clean and minimal composition.",
+        "The overall mood should be calming, trustworthy, and professional.",
+        "No text, no letters, no numbers, no watermarks.",
+        "Aspect ratio 3:4 portrait orientation.",
+    ]
+    if category:
+        cat_visuals = {
+            "情绪管理": "gentle flowing wave patterns or soft clouds",
+            "学业心理": "abstract book and stationery elements in pastel blue",
+            "人际关系": "two soft overlapping circles representing connection",
+            "自我成长": "a growing plant or tree silhouette with soft light",
+            "行为习惯": "clean abstract clock or daily routine elements",
+            "青春期心理": "butterfly silhouette with soft pink and purple tones",
+            "家庭教育": "warm house-shaped light glow with soft edges",
+            "心理危机": "a single light beam breaking through soft gray gradient",
+        }
+        visual = cat_visuals.get(category, "soft abstract shapes")
+        parts.append(f"Visual motif: {visual}.")
+    return " ".join(parts)
 
 
-def generate_all(items: list[dict]) -> list[str]:
+async def generate_all(items: list[dict]) -> list[str]:
     paths = []
-    for i, item in enumerate(items):
+    for item in items:
         cid = item.get("id", "")[:8]
         title = item.get("xhs_title", "") or item.get("title", "")
         cat = item.get("topic_category", "")
-        color = COLORS[i % len(COLORS)]
-        path = generate_cover(cid, title, cat, color)
+        path = await generate_cover(cid, title, cat)
         if path:
             paths.append(path)
     return paths
