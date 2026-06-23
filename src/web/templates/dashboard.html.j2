@@ -67,10 +67,20 @@ async function action(cmd) {
   el.className = 'text-sm text-orange-500 self-center ml-3';
   try {
     const r = await apiFetch('/api/pipeline/'+cmd, 'POST');
-    const msg = r.error ? '错误: '+r.error : ('完成: 新增'+r.total_new+'篇, 跳过'+r.total_skipped+'篇');
-    el.textContent = msg;
-    el.className = r.error ? 'text-sm text-red-500 self-center ml-3' : 'text-sm text-green-500 self-center ml-3';
-    setTimeout(() => location.reload(), 3000);
+    if (r.error) {
+      el.textContent = '错误: '+r.error;
+      el.className = 'text-sm text-red-500 self-center ml-3';
+    } else if (r.total_new !== undefined) {
+      el.textContent = '完成: 新增'+r.total_new+'篇, 跳过'+(r.total_skipped||0)+'篇';
+      el.className = 'text-sm text-green-500 self-center ml-3';
+    } else if (r.status === 'started') {
+      el.textContent = '全流程已启动, 查看日志: docker compose logs -f app';
+      el.className = 'text-sm text-blue-500 self-center ml-3';
+    } else {
+      el.textContent = '完成: '+JSON.stringify(r).slice(0,80);
+      el.className = 'text-sm text-green-500 self-center ml-3';
+    }
+    setTimeout(() => location.reload(), 5000);
   } catch(e) {
     el.textContent = '请求失败: '+e.message;
     el.className = 'text-sm text-red-500 self-center ml-3';
