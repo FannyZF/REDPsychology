@@ -5,12 +5,17 @@
 <div class="grid grid-cols-3 gap-4">
 {% for item in items %}
 <div class="card p-4">
+  {% set is_cover = item.video_path and (item.video_path.endswith('.png') or 'thumbnails' in item.video_path) %}
   <div class="bg-gray-900 rounded-lg flex items-center justify-center h-48 mb-3">
+    {% if is_cover %}
+    <img src="/api/content/{{ item.id }}/video" class="max-h-full max-w-full object-contain rounded-lg">
+    {% else %}
     <video src="/api/content/{{ item.id }}/video" controls class="max-h-full rounded-lg" preload="metadata"></video>
+    {% endif %}
   </div>
   <p class="text-sm font-medium text-gray-700 truncate mb-1">{{ (item.xhs_title or item.title)[:40] }}</p>
   <div class="flex items-center justify-between text-xs text-gray-400">
-    <span>{{ item.video_duration }}s</span>
+    <span>{% if is_cover %}封面图{% else %}{{ item.video_duration }}s{% endif %}</span>
     <a href="/content/{{ item.id }}" class="text-blue-500 hover:underline">详情</a>
   </div>
 </div>

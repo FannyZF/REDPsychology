@@ -145,6 +145,8 @@ async def api_video_file(item_id: str):
     path = Path(item.video_path)
     if not path.exists():
         raise HTTPException(404)
+    if path.suffix == '.png':
+        return FileResponse(str(path), media_type="image/png")
     return FileResponse(str(path), media_type="video/mp4")
 
 
