@@ -137,6 +137,44 @@ async def page_login(request: Request):
     return render("login.html.j2", {}, request)
 
 
+@app.post("/api/login/qrcode")
+async def api_login_qrcode():
+    import threading, time
+    from src.publisher.selenium_publisher import XiaohongshuPublisher
+
+    def _capture():
+        xhs = XiaohongshuPublisher(headless=True)
+        try:
+            xhs.start()
+            xhs.driver.get("https://creator.xiaohongshu.com/login")
+            time.sleep(5)
+            ss = Path(ROOT_DIR / "output" / "screenshots" / "login_qr.png")
+            ss.parent.mkdir(parents=True, exist_ok=True)
+            xhs.driver.save_screenshot(str(ss))
+            logger.info("QR captured")
+        except Exception as e:
+            logger.error(f"QR failed: {e}")
+        finally:
+            xhs.close()
+
+    threading.Thread(target=_capture, daemon=True).start()
+    return {"status": "capturing"}
+
+
+@app.get("/api/login/qrcode-image")
+async def api_login_qrcode_image():
+    import base64
+    ss = Path(ROOT_DIR / "output" / "screenshots" / "login_qr.png")
+    if not ss.exists():
+        raise HTTPException(404, "QR not ready yet, retry in a few seconds")
+    with open(ss, "rb") as f:
+        data = base64.b64encode(f.read()).decode()
+    return HTMLResponse(
+        f'<html><body style="background:#000;display:flex;justify-content:center;align-items:center;height:100vh;margin:0">'
+        f'<img src="data:image/png;base64,{data}" style="max-width:100%;max-height:100vh"></body></html>'
+    )
+
+
 @app.get("/api/content/{item_id}/video")
 async def api_video_file(item_id: str):
     item = store.get_by_id(item_id)
