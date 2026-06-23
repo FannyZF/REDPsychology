@@ -53,15 +53,14 @@
 <div class="card p-6 mt-6">
   <h3 class="font-semibold text-gray-700 mb-4">内容产出模式</h3>
   <div class="flex items-center gap-4">
-    <div>
-      <select id="video-enabled" class="w-48 border rounded-xl px-4 py-2 text-sm" onchange="updateVideoMode()">
-        <option value="true" {% if schedule.video_enabled %}selected{% endif %}>视频模式</option>
-        <option value="false" {% if not schedule.video_enabled %}selected{% endif %}>图文模式</option>
-      </select>
-    </div>
-    <p class="text-xs text-gray-400" id="video-mode-desc">
-      视频模式：生成 AI 视频 + 旁白 + 字幕后发布。图文模式：生成封面图 + 文字后发布。
+    <select id="video-enabled" class="w-48 border rounded-xl px-4 py-2 text-sm">
+      <option value="true" {% if schedule.video_enabled %}selected{% endif %}>视频模式</option>
+      <option value="false" {% if not schedule.video_enabled %}selected{% endif %}>图文模式</option>
+    </select>
+    <p class="text-xs text-gray-400 flex-1">
+      视频模式：生成 AI 视频 + 旁白 + 字幕后发布。<br>图文模式：生成 AI 封面图 + 文字后发布。
     </p>
+    <button onclick="saveVideoMode()" class="btn bg-blue-500 text-white text-sm">保存模式</button>
   </div>
 </div>
 
@@ -200,6 +199,12 @@ async function saveKeys() {
   };
   await apiFetch('/api/settings/api_key', 'PUT', data);
   alert('API Keys 已保存');
+}
+async function saveVideoMode() {
+  await apiFetch('/api/settings/schedule', 'PUT', {
+    video_enabled: document.getElementById('video-enabled').value === 'true'
+  });
+  alert('产出模式已保存');
 }
 async function saveSchedule() {
   const data = {
