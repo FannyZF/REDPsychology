@@ -10,14 +10,28 @@ logger = get_logger(__name__)
 
 ARK_BASE = "https://ark.cn-beijing.volces.com/api/v3"
 GENERATE_URL = f"{ARK_BASE}/contents/generations/tasks"
-DEFAULT_MODEL = "ep-m-20260623082640-bwvbj"
+DEFAULT_MODEL = "doubao-seedance-1-0-pro-fast-251015"
 
 
 class VolcengineVideoClient:
     def __init__(self, api_key: str = "", model: str = ""):
         keys = load_keys()
         self.api_key = api_key or keys.get("volcengine_api_key", "")
-        self.model = model or DEFAULT_MODEL
+        self.model = model or self._load_model_from_config()
+
+    @staticmethod
+    def _load_model_from_config() -> str:
+        try:
+            import yaml
+            from pathlib import Path
+            config_path = Path(__file__).parent.parent.parent / "config.yaml"
+            if config_path.exists():
+                with open(config_path, "r", encoding="utf-8") as f:
+                    cfg = yaml.safe_load(f)
+                return cfg.get("video", {}).get("model", DEFAULT_MODEL)
+        except Exception:
+            pass
+        return DEFAULT_MODEL
 
     async def text_to_video(
         self, prompt: str, duration: int = 12, aspect_ratio: str = "9:16",

@@ -153,6 +153,7 @@ llm:
   max_tokens: 4096
 video:
   provider: volcengine
+  model: doubao-seedance-1-0-pro-fast-251015
   default_duration: 15
   aspect_ratio: '9:16'
   max_generate_per_run: 3
