@@ -236,18 +236,41 @@ class XiaohongshuPublisher:
         self._find_and_send_keys(title_xpaths, title, description="title input")
         self._random_delay(1, 2)
 
-        # Step 4: Fill content/description
+        # Step 4: Fill content/description - use JS for contenteditable
         desc = content
         if tags:
             desc += "\n\n" + " ".join(f"#{t}" for t in tags)
 
         desc_xpaths = [
-            "//textarea[@placeholder and contains(@placeholder, '正文')]",
             "//div[@contenteditable='true']",
             "//div[contains(@class, 'ql-editor')]",
-            "//textarea",
+            "//div[@role='textbox']",
         ]
-        self._find_and_send_keys(desc_xpaths, desc, description="description input")
+        filled = False
+        for xp in desc_xpaths:
+            try:
+                el = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, xp))
+                )
+                self._random_delay(0.3, 0.8)
+                el.click()
+                self._random_delay(0.3, 0.5)
+                escaped = desc.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "<br>")
+                self.driver.execute_script(f"arguments[0].innerHTML = '{escaped}'", el)
+                self.driver.execute_script(
+                    "arguments[0].dispatchEvent(new Event('input', {bubbles: true}))", el
+                )
+                logger.info(f"Filled description via JS")
+                filled = True
+                break
+            except (TimeoutException, NoSuchElementException):
+                continue
+
+        if not filled:
+            self._find_and_send_keys(
+                ["//textarea[@placeholder]", "//textarea"],
+                desc, description="description"
+            )
         self._random_delay(1, 2)
 
         self._screenshot("filled_content")
