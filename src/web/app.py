@@ -124,7 +124,11 @@ async def page_settings(request: Request):
     try:
         import yaml
         cfg = load_yaml_config()
-        schedule["video_enabled"] = cfg.get("video", {}).get("enabled", True)
+        video_en = cfg.get("video", {}).get("enabled", True)
+        sch_en = schedule.get("video_enabled")
+        if sch_en is not None:
+            video_en = sch_en
+        schedule["video_enabled"] = video_en
     except Exception:
         pass
     return render("settings.html.j2", {
@@ -454,6 +458,16 @@ async def api_update_key(data: dict):
 async def api_update_schedule(data: dict):
     for k, v in data.items():
         update_schedule_config(k, v)
+    # Also sync video_enabled to config.yaml
+    if "video_enabled" in data:
+        try:
+            cfg = load_yaml_config()
+            if "video" not in cfg:
+                cfg["video"] = {}
+            cfg["video"]["enabled"] = data["video_enabled"]
+            save_yaml_config(cfg)
+        except Exception:
+            pass
 
 
 @app.post("/api/sources/detect")
