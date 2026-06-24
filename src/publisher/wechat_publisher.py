@@ -19,18 +19,28 @@ def _get_token(appid: str, secret: str) -> str:
     if _cache["token"] and _cache["expires_at"] > now + 60:
         return _cache["token"]
 
-    resp = httpx.post(
+    for url in [
+        f"{WECHAT_API}/cgi-bin/token?grant_type=client_credential&appid={appid}&secret={secret}",
         f"{WECHAT_API}/cgi-bin/stable_token",
-        json={"grant_type": "client_credential", "appid": appid, "secret": secret},
-        timeout=15,
-    )
-    data = resp.json()
-    token = data.get("access_token", "")
-    expires = data.get("expires_in", 7200)
-    _cache["token"] = token
-    _cache["expires_at"] = now + expires - 300
-    logger.info(f"WeChat token obtained, expires in {expires}s")
-    return token
+    ]:
+        try:
+            if "stable" in url:
+                resp = httpx.post(url, json={"grant_type": "client_credential", "appid": appid, "secret": secret}, timeout=15)
+            else:
+                resp = httpx.get(url, timeout=15)
+            data = resp.json()
+            token = data.get("access_token", "")
+            if token:
+                expires = data.get("expires_in", 7200)
+                _cache["token"] = token
+                _cache["expires_at"] = now + expires - 300
+                logger.info(f"WeChat token obtained, expires in {expires}s")
+                return token
+            logger.warning(f"WeChat token failed ({'stable' if 'stable' in url else 'normal'}): {data}")
+        except Exception as e:
+            logger.error(f"WeChat token request error: {e}")
+
+    return ""
 
 
 def upload_cover(token: str, image_path: str) -> str:
