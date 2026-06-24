@@ -40,7 +40,7 @@
     <a href="/api/content/{{ item.id }}/video" download class="btn bg-purple-500 text-white text-xs">下载视频</a>
     {% endif %}
     <button onclick="copyText('{{ item.id }}')" class="btn bg-gray-100 text-xs">复制文案</button>
-    <button onclick="wechatPublish('{{ item.id }}')" class="btn bg-green-500 text-white text-xs">发布公众号</button>
+    <button onclick="wechatPublish('{{ item.id }}')" class="btn bg-green-500 text-white text-xs" id="wx-btn-{{ item.id }}">发布公众号</button>
     <button onclick="markPublished('{{ item.id }}')" class="btn bg-gray-100 text-xs">标记已发布</button>
   </div>
 </div>
@@ -79,22 +79,22 @@ async function markPublished(id) {
 async function wechatPublish(id) {
   if (!confirm('确认发布到微信公众号？')) return;
   const btn = document.getElementById('wx-btn-'+id);
-  btn.disabled = true;
-  btn.textContent = '发布中...';
+  if (btn) { btn.disabled = true; btn.textContent = '发布中...'; }
   try {
     const resp = await fetch('/api/publish/wechat/'+id, {method:'POST'});
     const data = await resp.json();
     if (data.status === 'published') {
       alert('公众号发布成功!');
       location.reload();
+    } else if (data.detail) {
+      alert('错误: ' + data.detail);
     } else {
       alert('发布失败: ' + (data.error || '未知错误'));
     }
   } catch(e) {
     alert('请求失败: ' + e.message);
   }
-  btn.disabled = false;
-  btn.textContent = '发布公众号';
+  if (btn) { btn.disabled = false; btn.textContent = '发布公众号'; }
 }
 async function copyText(id) {
   const resp = await fetch('/api/content');
