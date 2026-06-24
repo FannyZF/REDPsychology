@@ -136,15 +136,20 @@ class DailyPipeline:
             logger.info("[Daily] No items in publish queue")
             return {"published": 0}
 
-        # Only publish items whose scheduled_time has arrived
+        # Only publish items whose scheduled time has arrived (or not set = immediate)
         published = 0
         for item in queue:
             if published >= remaining:
                 break
-            item_time = item.scheduled_time or "18:00"
-            if item_time > now_time:
-                logger.debug(f"[Daily] Skipping {item.id[:8]}: scheduled at {item_time}, now {now_time}")
-                continue
+            item_time = item.scheduled_time or ""
+            if item_time:
+                try:
+                    item_dt = datetime.fromisoformat(item_time)
+                    if item_dt > now_dt:
+                        logger.debug(f"[Daily] Skipping {item.id[:8]}: scheduled {item_time}")
+                        continue
+                except ValueError:
+                    pass  # Invalid format, publish immediately
 
             logger.info(f"[Daily] Publishing {item.id[:8]} (scheduled {item_time})")
             self._do_publish(item)

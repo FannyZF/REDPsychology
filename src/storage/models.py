@@ -42,7 +42,7 @@ class ContentItem(BaseModel):
     publish_status: str = ""
     xhs_note_id: str = ""
     xhs_published_at: str = ""
-    scheduled_time: str = "18:00"
+    scheduled_time: str = ""
 
     status: str = "pending"
     processed_at: str = ""
