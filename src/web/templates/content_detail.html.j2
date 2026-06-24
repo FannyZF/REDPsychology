@@ -23,11 +23,23 @@
     <h3 class="font-semibold text-gray-700">LLM 加工结果</h3>
     <button onclick="reprocess('{{ item.id }}')" class="btn bg-orange-100 text-orange-600 text-xs">重新加工</button>
   </div>
-  <div class="flex gap-2 mb-3">
-    <span class="pill bg-blue-100 text-blue-600">{{ item.topic_category }}</span>
-    {% if item.sub_category %}<span class="pill bg-gray-100 text-gray-600">{{ item.sub_category }}</span>{% endif %}
-    <span class="pill bg-yellow-100 text-yellow-700">{{ item.priority }}</span>
-    <span class="pill bg-green-100 text-green-600">{{ item.target_audience }}</span>
+  <div class="space-y-2 mb-3 text-sm">
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-gray-400 w-16">内容分类</span>
+      <span class="pill bg-blue-100 text-blue-600">{{ item.topic_category or '-' }} &gt; {{ item.sub_category or '-' }}</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-gray-400 w-16">优先级</span>
+      <span class="pill bg-yellow-100 text-yellow-700">{{ item.priority or '-' }}</span>
+      <span class="text-xs text-gray-400">（高=政策热点优先发布，中=研究资讯，低=常规科普）</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-gray-400 w-16">目标受众</span>
+      {% set audience_map = {'P': '家长', 'T': '教师', 'S': '学生', 'G': '通用'} %}
+      {% for a in audience %}
+      <span class="pill bg-green-100 text-green-600">{{ audience_map.get(a, a) }}</span>
+      {% endfor %}
+    </div>
   </div>
 
   <h4 class="text-sm font-semibold text-gray-600 mb-2">核心观点 ({{ points|length }})</h4>
