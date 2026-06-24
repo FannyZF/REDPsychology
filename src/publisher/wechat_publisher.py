@@ -118,7 +118,20 @@ def submit_publish(token: str, media_id: str) -> str:
     if publish_id:
         logger.info(f"WeChat publish submitted: {publish_id}")
     else:
-        logger.error(f"WeChat publish failed: {data}")
+        logger.error(f"WeChat freepublish failed: {data}")
+        # Try alternative: publish directly without draft
+        resp2 = httpx.post(
+            f"{WECHAT_API}/cgi-bin/freepublish/submit",
+            params={"access_token": token},
+            json={"media_id": media_id, "comment": 0},
+            timeout=15,
+        )
+        data2 = resp2.json()
+        publish_id2 = data2.get("publish_id", "")
+        if publish_id2:
+            logger.info(f"WeChat publish submitted (retry): {publish_id2}")
+            return publish_id2
+        logger.error(f"WeChat publish retry also failed: {data2}")
     return publish_id
 
 
