@@ -403,6 +403,19 @@ async def api_revideo(item_id: str):
     return {"status": "failed"}
 
 
+@app.get("/api/content/{item_id}/video")
+async def api_video_file(item_id: str):
+    item = store.get_by_id(item_id)
+    if not item or not item.video_path:
+        raise HTTPException(404)
+    path = Path(item.video_path)
+    if not path.exists():
+        raise HTTPException(404)
+    if path.suffix == '.png':
+        return FileResponse(str(path), media_type="image/png")
+    return FileResponse(str(path), media_type="video/mp4")
+
+
 @app.delete("/api/content/{item_id}")
 async def api_delete(item_id: str):
     store.delete(item_id)
