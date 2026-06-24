@@ -447,7 +447,7 @@ async def api_publish_wechat(item_id: str):
         raise HTTPException(400, "请先生成封面图")
 
     from src.publisher.wechat_publisher import publish_article
-    ok = publish_article(
+    result = publish_article(
         title=item.xhs_title or item.title,
         content=(item.xhs_content or item.summary).replace("\\n", "\n"),
         cover_path=cover_path,
@@ -455,10 +455,10 @@ async def api_publish_wechat(item_id: str):
         secret=secret,
         digest=item.summary[:100] if item.summary else "",
     )
-    if ok:
+    if result.get("status") == "ok":
         store.update_publish_status(item.id)
         return {"status": "published", "platform": "wechat"}
-    return {"status": "failed", "error": "微信发布失败，查看服务器日志"}
+    return {"status": "failed", "error": result.get("error", "微信发布失败")}
 
 
 @app.put("/api/settings/api_key")

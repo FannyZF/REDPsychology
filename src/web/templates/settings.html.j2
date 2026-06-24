@@ -47,12 +47,9 @@
       <input id="video-time" type="time" value="{{ time.video_time }}" class="w-full border rounded-xl px-4 py-2 text-sm">
     </div>
     <div>
-      <label class="text-sm text-gray-500 block mb-1">发布时间</label>
-      <input id="publish-time" type="time" value="{{ time.publish_time }}" class="w-full border rounded-xl px-4 py-2 text-sm">
-    </div>
-    <div>
       <label class="text-sm text-gray-500 block mb-1">每日发布上限</label>
       <input id="max-per-day" type="number" value="{{ schedule.max_per_day }}" min="1" max="5" class="w-full border rounded-xl px-4 py-2 text-sm">
+      <span class="text-xs text-gray-400">每篇文章在发布页单独设定时间，到点自动推送</span>
     </div>
   </div>
   <button onclick="saveSchedule()" class="btn bg-blue-500 text-white text-sm mt-4">保存调度配置</button>
@@ -238,8 +235,6 @@ async function saveSchedule() {
     process_minute: parseInt(document.getElementById('process-time').value.split(':')[1]),
     video_hour: parseInt(document.getElementById('video-time').value.split(':')[0]),
     video_minute: parseInt(document.getElementById('video-time').value.split(':')[1]),
-    publish_hour: parseInt(document.getElementById('publish-time').value.split(':')[0]),
-    publish_minute: parseInt(document.getElementById('publish-time').value.split(':')[1]),
     max_per_day: parseInt(document.getElementById('max-per-day').value),
     video_enabled: document.getElementById('video-enabled').value === 'true',
     trending_enabled: document.getElementById('trending-enabled')?.value === 'true',

@@ -96,19 +96,22 @@ def submit_publish(token: str, media_id: str) -> str:
 
 
 def publish_article(title: str, content: str, cover_path: str,
-                    appid: str, secret: str, digest: str = "") -> bool:
-    """Complete publish flow: upload cover -> add draft -> publish"""
+                    appid: str, secret: str, digest: str = "") -> dict:
+    """Returns {"status": "ok"} or {"error": "message"}"""
     token = _get_token(appid, secret)
     if not token:
-        return False
+        return {"error": "获取微信token失败"}
 
     cover_url = upload_cover(token, cover_path)
     if not cover_url:
-        return False
+        return {"error": "上传封面图片失败"}
 
     media_id = add_draft(token, title, content, cover_url, digest)
     if not media_id:
-        return False
+        return {"error": "创建草稿失败"}
 
     publish_id = submit_publish(token, media_id)
-    return bool(publish_id)
+    if not publish_id:
+        return {"error": "发布提交失败"}
+    
+    return {"status": "ok", "publish_id": publish_id}

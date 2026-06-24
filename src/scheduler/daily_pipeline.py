@@ -136,20 +136,20 @@ class DailyPipeline:
             logger.info("[Daily] No items in publish queue")
             return {"published": 0}
 
-        # Only publish items whose scheduled time has arrived (or not set = immediate)
+        # Only publish items with a set scheduled_time that has passed
         published = 0
         for item in queue:
             if published >= remaining:
                 break
-            item_time = item.scheduled_time or ""
-            if item_time:
-                try:
-                    item_dt = datetime.fromisoformat(item_time)
-                    if item_dt > now_dt:
-                        logger.debug(f"[Daily] Skipping {item.id[:8]}: scheduled {item_time}")
-                        continue
-                except ValueError:
-                    pass  # Invalid format, publish immediately
+            item_time = (item.scheduled_time or "").strip()
+            if not item_time:
+                continue  # Skip - no schedule set
+            try:
+                item_dt = datetime.fromisoformat(item_time)
+                if item_dt > now_dt:
+                    continue  # Not yet
+            except ValueError:
+                continue  # Invalid format, skip
 
             logger.info(f"[Daily] Publishing {item.id[:8]} (scheduled {item_time})")
             self._do_publish(item)
@@ -171,17 +171,17 @@ class DailyPipeline:
                 secret = keys.get("wechat_secret", "")
                 if appid and secret and item.video_path:
                     from src.publisher.wechat_publisher import publish_article
-                    ok = publish_article(
+                    result = publish_article(
                         title=item.xhs_title or item.title,
                         content=(item.xhs_content or item.summary).replace("\\n", "\n"),
                         cover_path=item.video_path,
                         appid=appid, secret=secret,
                         digest=item.summary[:100] if item.summary else "",
                     )
-                    if ok:
+                    if result.get("status") == "ok":
                         logger.info(f"[Daily] WeChat published: {item.id[:8]}")
                     else:
-                        logger.error(f"[Daily] WeChat publish failed: {item.id[:8]}")
+                        logger.error(f"[Daily] WeChat failed: {result.get('error')}")
         except Exception as e:
             logger.error(f"[Daily] WeChat publish error: {e}")
 

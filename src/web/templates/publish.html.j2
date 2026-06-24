@@ -20,7 +20,7 @@
     <span class="pill bg-yellow-100 text-yellow-700">{{ item.get('priority', '') }}</span>
     <span class="text-xs text-gray-400">预定发布</span>
     <input type="datetime-local" value="{{ item.get('scheduled_time', '') }}" 
-           onchange="setTime('{{ item.id }}', this.value)"
+           data-id="{{ item.id }}"
            class="border rounded-lg px-2 py-1 text-xs w-44">
   </div>
   <p class="text-sm font-medium text-gray-700 mb-2">{{ item.get('xhs_title', item.get('title', ''))[:50] }}</p>
@@ -33,15 +33,15 @@
     </div>
   </div>
 
-  <div class="flex gap-2">
+  <div class="flex gap-2 flex-wrap">
     {% if item.get('video_path', '').endswith('.png') %}
     <a href="/api/content/{{ item.id }}/video" download class="btn bg-blue-500 text-white text-xs">下载封面</a>
     {% else %}
     <a href="/api/content/{{ item.id }}/video" download class="btn bg-purple-500 text-white text-xs">下载视频</a>
     {% endif %}
     <button onclick="copyText('{{ item.id }}')" class="btn bg-gray-100 text-xs">复制文案</button>
-    <button onclick="wechatPublish('{{ item.id }}')" class="btn bg-green-500 text-white text-xs" id="wx-btn-{{ item.id }}">发布公众号</button>
-    <button onclick="markPublished('{{ item.id }}')" class="btn bg-gray-100 text-xs">标记已发布</button>
+    <button onclick="publishNow('{{ item.id }}')" class="btn bg-green-500 text-white text-xs">立即发布</button>
+    <button onclick="saveSchedule('{{ item.id }}')" class="btn bg-orange-500 text-white text-xs">定时发送</button>
   </div>
 </div>
 {% endfor %}
@@ -72,56 +72,52 @@
 </div>
 
 <script>
-async function markPublished(id) {
-  await fetch('/api/publish/'+id, {method:'POST'});
-  location.reload();
-}
-async function wechatPublish(id) {
-  if (!confirm('确认发布到微信公众号？')) return;
-  const btn = document.getElementById('wx-btn-'+id);
-  if (btn) { btn.disabled = true; btn.textContent = '发布中...'; }
+async function publishNow(id) {
+  if (!confirm('确认立即发布到公众号？')) return;
   try {
     const resp = await fetch('/api/publish/wechat/'+id, {method:'POST'});
     const data = await resp.json();
     if (data.status === 'published') {
-      alert('公众号发布成功!');
+      alert('发布成功!');
       location.reload();
-    } else if (data.detail) {
-      alert('错误: ' + data.detail);
     } else {
-      alert('发布失败: ' + (data.error || '未知错误'));
+      alert('失败: ' + (data.error || data.detail || '未知'));
     }
   } catch(e) {
     alert('请求失败: ' + e.message);
   }
-  if (btn) { btn.disabled = false; btn.textContent = '发布公众号'; }
+}
+
+async function saveSchedule(id) {
+  const input = document.querySelector(`input[data-id="${id}"]`);
+  const time = input ? input.value : '';
+  if (!time) { alert('请先选择发布时间'); return; }
+  await fetch('/api/content/'+id+'/schedule-time', {
+    method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({time: time})
+  });
+  alert('已设定定时发送: ' + time);
+}
+
+async function markPublished(id) {
+  await fetch('/api/publish/'+id, {method:'POST'});
+  location.reload();
 }
 async function copyText(id) {
   const resp = await fetch('/api/content');
   const data = await resp.json();
   const item = data.items.find(i => i.id === id);
   if (!item) return;
-
   const tags = (() => { try { return JSON.parse(item.xhs_tags || '[]'); } catch(e) { return []; } })();
-  // Format for Xiaohongshu: single newlines between paragraphs, tags at end
   const title = (item.xhs_title || '').trim();
   const body = (item.xhs_content || '').replace(/\\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   const tagLine = tags.map(t => '#' + t).join(' ');
   const text = title + '\n\n' + body + '\n\n' + tagLine;
-
-  // Fallback copy method (works on HTTP)
   const ta = document.createElement('textarea');
   ta.value = text;
-  ta.style.position = 'fixed';
-  ta.style.left = '-9999px';
-  document.body.appendChild(ta);
-  ta.select();
-  try {
-    document.execCommand('copy');
-    alert('文案已复制，打开小红书粘贴即可');
-  } catch(e) {
-    alert('复制失败，请手动选择复制');
-  }
+  ta.style.position = 'fixed'; ta.style.left = '-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); alert('文案已复制'); } catch(e) {}
   document.body.removeChild(ta);
 }
 async function setTime(id, time) {
