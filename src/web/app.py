@@ -412,6 +412,36 @@ async def api_publish_single(item_id: str):
     return {"status": "published"}
 
 
+@app.post("/api/publish/wechat/{item_id}")
+async def api_publish_wechat(item_id: str):
+    item = store.get_by_id(item_id)
+    if not item:
+        raise HTTPException(404)
+    keys = load_keys()
+    appid = keys.get("wechat_appid", "")
+    secret = keys.get("wechat_secret", "")
+    if not appid or not secret:
+        raise HTTPException(400, "请先在设置页配置微信公众号 AppID 和 AppSecret")
+
+    cover_path = item.video_path
+    if not cover_path or not Path(cover_path).exists():
+        raise HTTPException(400, "请先生成封面图")
+
+    from src.publisher.wechat_publisher import publish_article
+    ok = publish_article(
+        title=item.xhs_title or item.title,
+        content=(item.xhs_content or item.summary).replace("\\n", "\n"),
+        cover_path=cover_path,
+        appid=appid,
+        secret=secret,
+        digest=item.summary[:100] if item.summary else "",
+    )
+    if ok:
+        store.update_publish_status(item.id)
+        return {"status": "published", "platform": "wechat"}
+    return {"status": "failed", "error": "微信发布失败，查看服务器日志"}
+
+
 @app.put("/api/settings/api_key")
 async def api_update_key(data: dict):
     for k, v in data.items():

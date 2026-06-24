@@ -19,6 +19,14 @@
       <label class="text-sm text-gray-500 block mb-1">火山引擎 API Key (ARK 开头)</label>
       <input id="volcengine-key" type="password" value="{{ keys.volcengine_api_key }}" class="w-full border rounded-xl px-4 py-2 text-sm">
     </div>
+    <div>
+      <label class="text-sm text-gray-500 block mb-1">微信公众号 AppID</label>
+      <input id="wechat-appid" type="text" value="{{ keys.wechat_appid }}" class="w-full border rounded-xl px-4 py-2 text-sm">
+    </div>
+    <div>
+      <label class="text-sm text-gray-500 block mb-1">微信公众号 AppSecret</label>
+      <input id="wechat-secret" type="password" value="{{ keys.wechat_secret }}" class="w-full border rounded-xl px-4 py-2 text-sm">
+    </div>
     <button onclick="saveKeys()" class="btn bg-blue-500 text-white text-sm">保存 API Keys</button>
   </div>
 </div>
@@ -196,6 +204,8 @@ async function saveKeys() {
     deepseek_api_key: document.getElementById('deepseek-key').value,
     deepseek_base_url: document.getElementById('deepseek-base').value,
     volcengine_api_key: document.getElementById('volcengine-key').value,
+    wechat_appid: document.getElementById('wechat-appid').value,
+    wechat_secret: document.getElementById('wechat-secret').value,
   };
   await apiFetch('/api/settings/api_key', 'PUT', data);
   alert('API Keys 已保存');

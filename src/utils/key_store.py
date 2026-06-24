@@ -9,6 +9,8 @@ DEFAULT_KEYS = {
     "deepseek_api_key": "",
     "deepseek_base_url": "https://api.deepseek.com",
     "volcengine_api_key": "",
+    "wechat_appid": "",
+    "wechat_secret": "",
 }
 
 
