@@ -85,7 +85,7 @@ def add_draft(token: str, title: str, content: str, cover_url: str, digest: str 
         logger.info(f"WeChat draft created: {media_id}")
     else:
         logger.error(f"WeChat draft failed: {data}")
-    return media_id
+        return {"error": f"草稿创建失败: {data.get('errmsg', str(data))}"}
 
 
 def submit_publish(token: str, media_id: str) -> str:
@@ -117,6 +117,8 @@ def publish_article(title: str, content: str, cover_path: str,
         return {"error": "上传封面图片失败"}
 
     media_id = add_draft(token, title, content, cover_url, digest)
+    if isinstance(media_id, dict):
+        return media_id
     if not media_id:
         return {"error": "创建草稿失败"}
 
