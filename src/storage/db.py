@@ -48,6 +48,7 @@ def init_db():
             publish_status TEXT DEFAULT '',
             xhs_note_id TEXT DEFAULT '',
             xhs_published_at TEXT DEFAULT '',
+            scheduled_time TEXT DEFAULT '18:00',
             status TEXT DEFAULT 'pending',
             processed_at TEXT DEFAULT '',
             error_message TEXT DEFAULT ''

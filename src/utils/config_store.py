@@ -14,7 +14,7 @@ DEFAULT_SCHEDULE = {
     "video_minute": 15,
     "publish_hour": 18,
     "publish_minute": 0,
-    "max_per_day": 1,
+    "max_per_day": 5,
     "publish_window_minutes": 30,
     "video_enabled": True,
     "trending_enabled": True,

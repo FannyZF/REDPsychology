@@ -116,38 +116,56 @@ class DailyPipeline:
             return {"success": 0, "failed": 0}
 
     def step_publish(self):
-        from src.publisher.publish_service import PublishScheduler
+        from src.utils.config_store import load as load_schedule
+        from datetime import datetime
 
-        scheduler = PublishScheduler(self.store)
-        can, reason = scheduler.can_publish_now()
-        if not can:
-            logger.info(f"[Daily] Skipping publish: {reason}")
-            return {"published": 0, "reason": reason}
+        sch = load_schedule()
+        max_per_day = sch.get("max_per_day", 5)
+        now_dt = datetime.now(tz_utc8)
+        now_time = now_dt.strftime("%H:%M")
 
-        queue = self.store.get_publish_queue(limit=1)
+        # Check today's already published count
+        published_today = self.store.count_published_today()
+        remaining = max_per_day - published_today
+        if remaining <= 0:
+            logger.info(f"[Daily] Publish limit reached: {published_today}/{max_per_day}")
+            return {"published": 0, "reason": "daily_limit"}
+
+        queue = self.store.get_publish_queue(limit=10)
         if not queue:
             logger.info("[Daily] No items in publish queue")
             return {"published": 0}
 
-        item = queue[0]
-        logger.info(f"[Daily] Step 4: Publishing: {item.id[:8]}")
+        # Only publish items whose scheduled_time has arrived
+        published = 0
+        for item in queue:
+            if published >= remaining:
+                break
+            item_time = item.scheduled_time or "18:00"
+            if item_time > now_time:
+                logger.debug(f"[Daily] Skipping {item.id[:8]}: scheduled at {item_time}, now {now_time}")
+                continue
 
-        # Check WeChat auto-publish
+            logger.info(f"[Daily] Publishing {item.id[:8]} (scheduled {item_time})")
+            self._do_publish(item)
+            published += 1
+
+        logger.info(f"[Daily] Published {published} items today ({published_today + published}/{max_per_day})")
+        return {"published": published}
+
+    def _do_publish(self, item):
         try:
             from src.utils.config_store import load as load_schedule
+            from src.utils.key_store import load as load_keys
             sch = load_schedule()
             auto_wechat = sch.get("wechat_auto_publish", False)
-        except Exception:
-            auto_wechat = False
 
-        if auto_wechat:
-            try:
-                from src.utils.key_store import load as load_keys
-                from src.publisher.wechat_publisher import publish_article
+            if auto_wechat:
                 keys = load_keys()
                 appid = keys.get("wechat_appid", "")
                 secret = keys.get("wechat_secret", "")
                 if appid and secret and item.video_path:
+                    from src.publisher.wechat_publisher import publish_article
                     ok = publish_article(
                         title=item.xhs_title or item.title,
                         content=(item.xhs_content or item.summary).replace("\\n", "\n"),
@@ -156,15 +174,13 @@ class DailyPipeline:
                         digest=item.summary[:100] if item.summary else "",
                     )
                     if ok:
-                        logger.info(f"[Daily] WeChat publish success: {item.id[:8]}")
+                        logger.info(f"[Daily] WeChat published: {item.id[:8]}")
                     else:
                         logger.error(f"[Daily] WeChat publish failed: {item.id[:8]}")
-            except Exception as e:
-                logger.error(f"[Daily] WeChat publish error: {e}")
+        except Exception as e:
+            logger.error(f"[Daily] WeChat publish error: {e}")
 
         self.store.update_publish_status(item.id)
-        logger.info(f"[Daily] Published: {item.id[:8]}")
-        return {"published": 1}
 
     def run_full(self):
         logger.info("=" * 40)

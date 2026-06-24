@@ -298,17 +298,19 @@ async def api_login_check():
         return {"logged_in": False, "error": str(e)}
 
 
-@app.get("/api/content/{item_id}/video")
-async def api_video_file(item_id: str):
+@app.put("/api/content/{item_id}/schedule-time")
+async def api_set_schedule_time(item_id: str, data: dict):
     item = store.get_by_id(item_id)
-    if not item or not item.video_path:
+    if not item:
         raise HTTPException(404)
-    path = Path(item.video_path)
-    if not path.exists():
-        raise HTTPException(404)
-    if path.suffix == '.png':
-        return FileResponse(str(path), media_type="image/png")
-    return FileResponse(str(path), media_type="video/mp4")
+    item.scheduled_time = data.get("time", "18:00")
+    import sqlite3
+    from pathlib import Path
+    conn = sqlite3.connect(str(Path(ROOT_DIR / "data" / "content.db")))
+    conn.execute("UPDATE content SET scheduled_time = ? WHERE id = ?", (item.scheduled_time, item_id))
+    conn.commit()
+    conn.close()
+    return {"status": "ok"}
 
 
 # === API Endpoints ===
