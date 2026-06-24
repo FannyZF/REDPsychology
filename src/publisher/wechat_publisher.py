@@ -44,7 +44,23 @@ def _get_token(appid: str, secret: str) -> str:
 
 
 def upload_cover(token: str, image_path: str) -> str:
-    """Upload cover image, return media_id (not url, but for draft use)"""
+    """Upload cover image as permanent material, return media_id"""
+    # Step 1: Upload as permanent image material
+    with open(image_path, "rb") as f:
+        resp = httpx.post(
+            f"{WECHAT_API}/cgi-bin/material/add_material",
+            params={"access_token": token, "type": "image"},
+            files={"media": f},
+            timeout=30,
+        )
+    data = resp.json()
+    media_id = data.get("media_id", "")
+    if media_id:
+        logger.info(f"WeChat cover uploaded, media_id: {media_id}")
+        return media_id
+    
+    # Fallback: try uploadimg (returns url, but draft API needs media_id)
+    logger.warning(f"add_material failed: {data}, trying uploadimg...")
     with open(image_path, "rb") as f:
         resp = httpx.post(
             f"{WECHAT_API}/cgi-bin/media/uploadimg",
@@ -55,10 +71,11 @@ def upload_cover(token: str, image_path: str) -> str:
     data = resp.json()
     url = data.get("url", "")
     if url:
-        logger.info(f"WeChat image uploaded: {url}")
-    else:
-        logger.error(f"WeChat image upload failed: {data}")
-    return url
+        logger.info(f"WeChat image URL: {url}")
+        return url
+    
+    logger.error(f"WeChat image upload failed: {data}")
+    return ""
 
 
 def add_draft(token: str, title: str, content: str, cover_url: str, digest: str = "") -> str:
