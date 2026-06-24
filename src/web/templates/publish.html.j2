@@ -91,10 +91,6 @@ async function publishNow(id) {
     alert('请求失败: ' + e.message);
   }
 }
-  } catch(e) {
-    alert('请求失败: ' + e.message);
-  }
-}
 
 async function saveSchedule(id) {
   const input = document.querySelector(`input[data-id="${id}"]`);
