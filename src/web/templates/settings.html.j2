@@ -70,6 +70,14 @@
     </p>
     <button onclick="saveVideoMode()" class="btn bg-blue-500 text-white text-sm">保存模式</button>
   </div>
+  <div class="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100">
+    <div class="flex items-center gap-2">
+      <input type="checkbox" id="wechat-auto" {% if schedule.wechat_auto_publish %}checked{% endif %} class="w-4 h-4">
+      <label for="wechat-auto" class="text-sm text-gray-700">自动发布到公众号</label>
+    </div>
+    <p class="text-xs text-gray-400">需先在 API Keys 中配置微信公众号 AppID 和 AppSecret</p>
+    <button onclick="saveWechatAuto()" class="btn bg-green-500 text-white text-xs">保存</button>
+  </div>
 </div>
 
 </div>
@@ -215,6 +223,12 @@ async function saveVideoMode() {
     video_enabled: document.getElementById('video-enabled').value === 'true'
   });
   alert('产出模式已保存');
+}
+async function saveWechatAuto() {
+  await apiFetch('/api/settings/schedule', 'PUT', {
+    wechat_auto_publish: document.getElementById('wechat-auto').checked
+  });
+  alert('公众号自动发布设置已保存');
 }
 async function saveSchedule() {
   const data = {

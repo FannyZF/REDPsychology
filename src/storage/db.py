@@ -216,7 +216,7 @@ class ContentStore:
         conn.execute(
             """UPDATE content SET
                publish_status = 'published', xhs_note_id = ?,
-               xhs_published_at = ? WHERE id = ?""",
+               xhs_published_at = ?, status = 'published' WHERE id = ?""",
             (note_id, now(), id),
         )
         conn.commit()

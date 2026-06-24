@@ -130,9 +130,40 @@ class DailyPipeline:
             return {"published": 0}
 
         item = queue[0]
-        logger.info(f"[Daily] Step 4: Marking content as published: {item.id[:8]}")
+        logger.info(f"[Daily] Step 4: Publishing: {item.id[:8]}")
+
+        # Check WeChat auto-publish
+        try:
+            from src.utils.config_store import load as load_schedule
+            sch = load_schedule()
+            auto_wechat = sch.get("wechat_auto_publish", False)
+        except Exception:
+            auto_wechat = False
+
+        if auto_wechat:
+            try:
+                from src.utils.key_store import load as load_keys
+                from src.publisher.wechat_publisher import publish_article
+                keys = load_keys()
+                appid = keys.get("wechat_appid", "")
+                secret = keys.get("wechat_secret", "")
+                if appid and secret and item.video_path:
+                    ok = publish_article(
+                        title=item.xhs_title or item.title,
+                        content=(item.xhs_content or item.summary).replace("\\n", "\n"),
+                        cover_path=item.video_path,
+                        appid=appid, secret=secret,
+                        digest=item.summary[:100] if item.summary else "",
+                    )
+                    if ok:
+                        logger.info(f"[Daily] WeChat publish success: {item.id[:8]}")
+                    else:
+                        logger.error(f"[Daily] WeChat publish failed: {item.id[:8]}")
+            except Exception as e:
+                logger.error(f"[Daily] WeChat publish error: {e}")
+
         self.store.update_publish_status(item.id)
-        logger.info(f"[Daily] Content ready for download: {item.id[:8]}")
+        logger.info(f"[Daily] Published: {item.id[:8]}")
         return {"published": 1}
 
     def run_full(self):
