@@ -106,33 +106,24 @@ def add_draft(token: str, title: str, content: str, cover_url: str, digest: str 
 
 
 def submit_publish(token: str, media_id: str) -> str:
-    """Submit draft for publishing, return publish_id"""
-    resp = httpx.post(
-        f"{WECHAT_API}/cgi-bin/freepublish/submit",
-        params={"access_token": token},
-        json={"media_id": media_id},
-        timeout=15,
-    )
-    data = resp.json()
-    publish_id = data.get("publish_id", "")
-    if publish_id:
-        logger.info(f"WeChat publish submitted: {publish_id}")
-    else:
-        logger.error(f"WeChat freepublish failed: {data}")
-        # Try alternative: publish directly without draft
-        resp2 = httpx.post(
+    try:
+        resp = httpx.post(
             f"{WECHAT_API}/cgi-bin/freepublish/submit",
             params={"access_token": token},
-            json={"media_id": media_id, "comment": 0},
+            json={"media_id": media_id},
             timeout=15,
         )
-        data2 = resp2.json()
-        publish_id2 = data2.get("publish_id", "")
-        if publish_id2:
-            logger.info(f"WeChat publish submitted (retry): {publish_id2}")
-            return publish_id2
-        logger.error(f"WeChat publish retry also failed: {data2}")
-    return publish_id
+        data = resp.json()
+        logger.info(f"freepublish response: {resp.status_code} {data}")
+        publish_id = data.get("publish_id", "")
+        if publish_id:
+            logger.info(f"WeChat publish submitted: {publish_id}")
+        else:
+            logger.error(f"WeChat freepublish failed: {data}")
+        return publish_id
+    except Exception as e:
+        logger.error(f"WeChat submit_publish crashed: {e}")
+        return ""
 
 
 def publish_article(title: str, content: str, cover_path: str,
@@ -153,6 +144,7 @@ def publish_article(title: str, content: str, cover_path: str,
         return {"error": "创建草稿失败"}
 
     publish_id = submit_publish(token, media_id)
+    logger.info(f"submit_publish result: '{publish_id}'")
     if not publish_id:
         return {"error": "发布提交失败"}
     
