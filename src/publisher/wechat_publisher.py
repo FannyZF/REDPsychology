@@ -137,7 +137,23 @@ def publish_article(title: str, content: str, cover_path: str,
     if not cover_url:
         return {"error": "上传封面图片失败"}
 
-    media_id = add_draft(token, title, content, cover_url, digest)
+    # Format content for WeChat HTML
+    body = content.replace("\\n", "\n").strip()
+    paragraphs = body.split("\n\n")
+    html_parts = ['<section style="padding:5px 0;">']
+    for p in paragraphs:
+        p = p.strip()
+        if not p:
+            continue
+        p = p.replace("\n", "<br>")
+        html_parts.append(
+            f'<p style="margin:0 0 12px 0;font-size:15px;'
+            f'line-height:1.8;color:#333;text-align:justify;">{p}</p>'
+        )
+    html_parts.append('</section>')
+    wechat_content = "\n".join(html_parts)
+
+    media_id = add_draft(token, title, wechat_content, cover_url, digest)
     if isinstance(media_id, dict):
         return media_id
     if not media_id:
