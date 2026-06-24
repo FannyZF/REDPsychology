@@ -73,16 +73,24 @@
 
 <script>
 async function publishNow(id) {
-  if (!confirm('确认立即发布到公众号？')) return;
+  if (!confirm('确认发布到公众号？')) return;
   try {
     const resp = await fetch('/api/publish/wechat/'+id, {method:'POST'});
     const data = await resp.json();
     if (data.status === 'published') {
-      alert('发布成功!');
+      if (data.message) {
+        alert('草稿已生成! 请在订阅号助手App中手动发布');
+      } else {
+        alert('发布成功!');
+      }
       location.reload();
     } else {
       alert('失败: ' + (data.error || data.detail || '未知'));
     }
+  } catch(e) {
+    alert('请求失败: ' + e.message);
+  }
+}
   } catch(e) {
     alert('请求失败: ' + e.message);
   }

@@ -455,9 +455,9 @@ async def api_publish_wechat(item_id: str):
         secret=secret,
         digest=item.summary[:100] if item.summary else "",
     )
-    if result.get("status") == "ok":
+    if result.get("status") in ("ok", "draft"):
         store.update_publish_status(item.id)
-        return {"status": "published", "platform": "wechat"}
+        return {"status": "published", "platform": "wechat", "message": result.get("error", "")}
     return {"status": "failed", "error": result.get("error", "微信发布失败")}
 
 

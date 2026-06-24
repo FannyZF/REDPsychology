@@ -128,7 +128,7 @@ def submit_publish(token: str, media_id: str) -> str:
 
 def publish_article(title: str, content: str, cover_path: str,
                     appid: str, secret: str, digest: str = "") -> dict:
-    """Returns {"status": "ok"} or {"error": "message"}"""
+    """Returns {"status": "ok"} or {"status": "draft", "error": "message"}"""
     token = _get_token(appid, secret)
     if not token:
         return {"error": "获取微信token失败"}
@@ -145,7 +145,8 @@ def publish_article(title: str, content: str, cover_path: str,
 
     publish_id = submit_publish(token, media_id)
     logger.info(f"submit_publish result: '{publish_id}'")
-    if not publish_id:
-        return {"error": "发布提交失败"}
+    if publish_id:
+        return {"status": "ok", "publish_id": publish_id}
     
-    return {"status": "ok", "publish_id": publish_id}
+    # Draft created but publish failed - still a partial success
+    return {"status": "draft", "error": "草稿已创建，请在订阅号助手App中手动发布"}
