@@ -100,6 +100,7 @@ def add_draft(token: str, title: str, content: str, cover_url: str, digest: str 
     media_id = data.get("media_id", "")
     if media_id:
         logger.info(f"WeChat draft created: {media_id}")
+        return media_id
     else:
         logger.error(f"WeChat draft failed: {data}")
         return {"error": f"草稿创建失败: {data.get('errmsg', str(data))}"}
