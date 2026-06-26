@@ -58,7 +58,7 @@ async def page_dashboard(request: Request):
 
 @app.get("/content", response_class=HTMLResponse)
 async def page_content_list(request: Request, status: str = "", page: int = 1):
-    per_page = 20
+    per_page = 50
     offset = (page - 1) * per_page
     items = [i.model_dump() for i in store.list_all(status=status, limit=per_page, offset=offset)]
     total = store.get_stats().total
