@@ -127,11 +127,20 @@ async function copyText(id) {
   const body = (item.xhs_content || '').replace(/\\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   const tagLine = tags.map(t => '#' + t).join(' ');
   const text = title + '\n\n' + body + '\n\n' + tagLine;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    alert('文案已复制到剪贴板');
+    return;
+  } catch(e) {}
+
   const ta = document.createElement('textarea');
-  ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
-  document.body.appendChild(ta); ta.select();
-  try { document.execCommand('copy'); alert('文案已复制，打开小红书粘贴'); } catch(e) { alert('复制失败'); }
-  document.body.removeChild(ta);
+  ta.value = text; ta.style.position = 'fixed'; ta.style.left = '0'; ta.style.top = '0';
+  ta.style.width = '80%'; ta.style.height = '200px'; ta.style.zIndex = '9999';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); alert('文案已复制'); document.body.removeChild(ta); return; } catch(e) {}
+  alert('自动复制失败，文本已选中，请手动 Ctrl+C 复制');
 }
 async function setTime(id, time) {
   await fetch('/api/content/'+id+'/schedule-time', {
