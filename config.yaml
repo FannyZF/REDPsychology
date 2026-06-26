@@ -54,6 +54,76 @@ sources:
       date: pubDate
       summary: description
 
+  - name: HealthPartners(儿童健康)
+    base_url: https://www.healthpartners.com
+    list_url: https://www.healthpartners.com/blog/topic/kids-health/feed
+    enabled: true
+    content_type: public
+    credibility: high
+    source_type: rss
+    lookback_days: 7
+    selectors:
+      title: title
+      link: link
+      date: pubDate
+      summary: description
+
+  - name: EmbarkBH(青少年行为健康)
+    base_url: https://www.embarkbh.com
+    list_url: https://www.embarkbh.com/feed
+    enabled: true
+    content_type: public
+    credibility: high
+    source_type: rss
+    lookback_days: 7
+    selectors:
+      title: title
+      link: link
+      date: pubDate
+      summary: description
+
+  - name: ACS-Teens(青少年心理)
+    base_url: https://www.acs-teens.org
+    list_url: https://www.acs-teens.org/feed
+    enabled: true
+    content_type: public
+    credibility: medium
+    source_type: rss
+    lookback_days: 7
+    selectors:
+      title: title
+      link: link
+      date: pubDate
+      summary: description
+
+  - name: Davis-Smith(心理健康)
+    base_url: https://davis-smithmentalhealth.com
+    list_url: https://davis-smithmentalhealth.com/blog/feed
+    enabled: true
+    content_type: public
+    credibility: medium
+    source_type: rss
+    lookback_days: 7
+    selectors:
+      title: title
+      link: link
+      date: pubDate
+      summary: description
+
+  - name: PatriceFoster(儿童心理治疗)
+    base_url: https://www.patricemfoster.com
+    list_url: https://www.patricemfoster.com/blog/feed
+    enabled: true
+    content_type: public
+    credibility: medium
+    source_type: rss
+    lookback_days: 7
+    selectors:
+      title: title
+      link: link
+      date: pubDate
+      summary: description
+
   - name: NIMH(美国精神卫生研究院)
     base_url: https://www.nimh.nih.gov
     list_url: https://www.nimh.nih.gov/site-info/feed-rss.xml
