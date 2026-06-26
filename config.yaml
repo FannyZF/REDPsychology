@@ -19,7 +19,6 @@ sources:
     content_type: research
     credibility: research
     source_type: rss
-    lookback_days: 7
     selectors:
       title: title
       link: link
@@ -33,7 +32,6 @@ sources:
     content_type: public
     credibility: high
     source_type: rss
-    lookback_days: 7
     selectors:
       title: title
       link: link
@@ -47,7 +45,6 @@ sources:
     content_type: academic
     credibility: academic
     source_type: rss
-    lookback_days: 7
     selectors:
       title: title
       link: link
@@ -61,7 +58,6 @@ sources:
     content_type: public
     credibility: high
     source_type: rss
-    lookback_days: 7
     selectors:
       title: title
       link: link
@@ -75,7 +71,6 @@ sources:
     content_type: public
     credibility: high
     source_type: rss
-    lookback_days: 7
     selectors:
       title: title
       link: link
@@ -89,7 +84,6 @@ sources:
     content_type: public
     credibility: medium
     source_type: rss
-    lookback_days: 7
     selectors:
       title: title
       link: link
@@ -103,7 +97,6 @@ sources:
     content_type: public
     credibility: medium
     source_type: rss
-    lookback_days: 7
     selectors:
       title: title
       link: link
@@ -117,7 +110,6 @@ sources:
     content_type: public
     credibility: medium
     source_type: rss
-    lookback_days: 7
     selectors:
       title: title
       link: link
