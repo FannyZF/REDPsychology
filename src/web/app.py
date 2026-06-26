@@ -422,6 +422,15 @@ async def api_delete(item_id: str):
     return {"status": "deleted"}
 
 
+@app.post("/api/publish/mark-xhs/{item_id}")
+async def api_mark_xhs(item_id: str):
+    item = store.get_by_id(item_id)
+    if not item:
+        raise HTTPException(404)
+    store.update_publish_status(item.id, platform="xhs")
+    return {"status": "published", "platform": "xhs"}
+
+
 @app.post("/api/publish/{item_id}")
 async def api_publish_single(item_id: str):
     item = store.get_by_id(item_id)

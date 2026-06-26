@@ -40,7 +40,8 @@
     <a href="/api/content/{{ item.id }}/video" download class="btn bg-purple-500 text-white text-xs">下载视频</a>
     {% endif %}
     <button onclick="copyText('{{ item.id }}')" class="btn bg-gray-100 text-xs">复制文案</button>
-    <button onclick="publishNow('{{ item.id }}')" class="btn bg-green-500 text-white text-xs">立即发布</button>
+    <button onclick="publishWechat('{{ item.id }}')" class="btn bg-green-500 text-white text-xs">发布公众号</button>
+    <button onclick="markXHS('{{ item.id }}')" class="btn bg-rose-500 text-white text-xs">已发小红书</button>
     <button onclick="saveSchedule('{{ item.id }}')" class="btn bg-orange-500 text-white text-xs">定时发送</button>
   </div>
 </div>
@@ -58,7 +59,10 @@
 {% for item in published %}
 <div class="card p-4">
   <div class="flex items-center gap-2 mb-1">
-    <span class="pill bg-green-100 text-green-600">已发布</span>
+    {% set platform = item.get('publish_platform', '') %}
+    {% if 'wechat' in platform %}<span class="pill bg-green-100 text-green-600">公众号</span>{% endif %}
+    {% if 'xhs' in platform %}<span class="pill bg-rose-100 text-rose-600">小红书</span>{% endif %}
+    {% if not platform %}<span class="pill bg-green-100 text-green-600">已发布</span>{% endif %}
     <span class="text-xs text-gray-400">{{ item.get('xhs_published_at', '')[:16] }}</span>
   </div>
   <p class="text-sm text-gray-600 truncate">{{ item.get('xhs_title', item.get('title', ''))[:50] }}</p>
@@ -72,7 +76,7 @@
 </div>
 
 <script>
-async function publishNow(id) {
+async function publishWechat(id) {
   if (!confirm('确认发布到公众号？')) return;
   try {
     const resp = await fetch('/api/publish/wechat/'+id, {method:'POST'});
@@ -90,6 +94,12 @@ async function publishNow(id) {
   } catch(e) {
     alert('请求失败: ' + e.message);
   }
+}
+
+async function markXHS(id) {
+  if (!confirm('确认标记为已发送到小红书？')) return;
+  await fetch('/api/publish/mark-xhs/'+id, {method:'POST'});
+  location.reload();
 }
 
 async function saveSchedule(id) {

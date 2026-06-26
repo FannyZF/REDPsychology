@@ -48,6 +48,7 @@ def init_db():
             publish_status TEXT DEFAULT '',
             xhs_note_id TEXT DEFAULT '',
             xhs_published_at TEXT DEFAULT '',
+            publish_platform TEXT DEFAULT '',
             scheduled_time TEXT DEFAULT '18:00',
             status TEXT DEFAULT 'pending',
             processed_at TEXT DEFAULT '',
@@ -212,13 +213,15 @@ class ContentStore:
         conn.commit()
         conn.close()
 
-    def update_publish_status(self, id: str, note_id: str = ""):
+    def update_publish_status(self, id: str, note_id: str = "", platform: str = ""):
         conn = _get_conn()
         conn.execute(
             """UPDATE content SET
                publish_status = 'published', xhs_note_id = ?,
-               xhs_published_at = ?, status = 'published' WHERE id = ?""",
-            (note_id, now(), id),
+               xhs_published_at = ?, status = 'published',
+               publish_platform = CASE WHEN publish_platform = '' THEN ? ELSE publish_platform || ',' || ? END
+               WHERE id = ?""",
+            (note_id, now(), platform, platform, id),
         )
         conn.commit()
         conn.close()
