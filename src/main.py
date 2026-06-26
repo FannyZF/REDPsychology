@@ -147,10 +147,12 @@ def cmd_run(args):
     if processed:
         print(f"\n=== 步骤3: 封面生成 ({len(processed)}篇) ===")
         from src.video_generator.cover import generate_cover
-        for item in processed:
-            path = await generate_cover(item.id[:8], item.xhs_title or item.title, item.topic_category)
-            if path:
-                store.update_video_status(item.id, path, 0)
+        async def _gen():
+            for item in processed:
+                path = await generate_cover(item.id[:8], item.xhs_title or item.title, item.topic_category)
+                if path:
+                    store.update_video_status(item.id, path, 0)
+        asyncio.run(_gen())
         print(f"封面生成完成")
     else:
         print("没有待生成封面的内容")
