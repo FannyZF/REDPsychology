@@ -264,7 +264,7 @@ publish:
   publish_minute: 0
   publish_window_minutes: 30
 collection:
-  lookback_days: 120
+  lookback_days: 180
   max_concurrent_sources: 3
   request_timeout: 10
   max_list_pages: 1
