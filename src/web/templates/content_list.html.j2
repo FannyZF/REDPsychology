@@ -39,10 +39,11 @@
 {% endfor %}
 </div>
 
-{% if total > per_page and page > 1 %}
+{% if total > per_page %}
 <div class="flex gap-2 mt-6 justify-center">
   {% if page > 1 %}<a href="?status={{ status_filter }}&page={{ page-1 }}" class="btn bg-gray-100">上一页</a>{% endif %}
-  <a href="?status={{ status_filter }}&page={{ page+1 }}" class="btn bg-gray-100">下一页</a>
+  <span class="text-sm text-gray-400 self-center">{{ page }} / {{ ((total - 1) // per_page) + 1 }}</span>
+  {% if page * per_page < total %}<a href="?status={{ status_filter }}&page={{ page+1 }}" class="btn bg-gray-100">下一页</a>{% endif %}
 </div>
 {% endif %}
 
