@@ -65,55 +65,28 @@ class DailyPipeline:
         return result
 
     async def step_video(self):
-        from src.processor.scorer import select_top, score_content
+        from src.processor.scorer import select_top
         from src.utils.keyword_store import load as load_kw_config
+        from src.video_generator.cover import generate_cover
 
         processed = self.store.get_processed(limit=50)
         if not processed:
-            logger.info("[Daily] No processed items for video scoring")
+            logger.info("[Daily] No processed items")
             return {"success": 0, "failed": 0}
 
         kw_config = load_kw_config()
         top_items = select_top(processed, top_n=3, keywords_config=kw_config)
-
         if not top_items:
             logger.info("[Daily] No items matched keyword priority")
             return {"success": 0, "failed": 0}
 
-        # Check video.enabled from both config.yaml and schedule.json
-        video_enabled = True
-        try:
-            import yaml
-            with open("/app/config.yaml", "r") as f:
-                cfg = yaml.safe_load(f)
-            video_enabled = cfg.get("video", {}).get("enabled", True)
-        except Exception:
-            pass
-        try:
-            from src.utils.config_store import load as load_schedule
-            sch = load_schedule()
-            if "video_enabled" in sch:
-                video_enabled = sch["video_enabled"]
-        except Exception:
-            pass
-
-        if not video_enabled:
-            from src.video_generator.cover import generate_cover
-            logger.info(f"[Daily] Video disabled, generating AI cover images for {len(top_items)} items")
-            for item in top_items:
-                path = await generate_cover(item.id[:8], item.xhs_title or item.title,
-                                            item.topic_category)
-                if path:
-                    self.store.update_video_status(item.id, path, 0)
-                    logger.info(f"Cover: {item.id[:8]}")
-            return {"success": len(top_items), "failed": 0}
-
-        from src.video_generator.composer import generate_all
-        keys = load_keys()
-        volc_key = keys.get("volcengine_api_key", "")
-        if not volc_key:
-            logger.warning("[Daily] Skipping video: no Volcengine API key")
-            return {"success": 0, "failed": 0}
+        logger.info(f"[Daily] Generating covers for {len(top_items)} items")
+        for item in top_items:
+            path = await generate_cover(item.id[:8], item.xhs_title or item.title, item.topic_category)
+            if path:
+                self.store.update_video_status(item.id, path, 0)
+                logger.info(f"Cover: {item.id[:8]}")
+        return {"success": len(top_items), "failed": 0}
 
     def step_publish(self):
         from src.utils.config_store import load as load_schedule
