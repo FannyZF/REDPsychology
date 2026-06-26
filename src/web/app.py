@@ -355,9 +355,15 @@ async def api_process():
 
 @app.post("/api/pipeline/video")
 async def api_video():
-    from src.video_generator.composer import generate_all
-    result = await generate_all(store, max_count=3)
-    return result
+    from src.video_generator.cover import generate_cover
+    processed = store.get_processed(limit=3)
+    success = 0
+    for item in processed:
+        path = await generate_cover(item.id[:8], item.xhs_title or item.title, item.topic_category)
+        if path:
+            store.update_video_status(item.id, path, 0)
+            success += 1
+    return {"success": success, "failed": len(processed) - success}
 
 
 @app.post("/api/pipeline/run")
@@ -387,18 +393,13 @@ async def api_reprocess(item_id: str):
 
 @app.post("/api/content/{item_id}/revideo")
 async def api_revideo(item_id: str):
-    from src.video_generator.composer import VideoComposer
-    from src.video_generator.client import VolcengineVideoClient
+    from src.video_generator.cover import generate_cover
     item = store.get_by_id(item_id)
     if not item:
         raise HTTPException(404)
-    client = VolcengineVideoClient()
-    composer = VideoComposer(client)
-    path = await composer.generate(item)
+    path = await generate_cover(item.id[:8], item.xhs_title or item.title, item.topic_category)
     if path:
-        from src.video_generator.composer import _get_video_duration
-        dur = _get_video_duration(path)
-        store.update_video_status(item_id, path, dur)
+        store.update_video_status(item_id, path, 0)
         return {"status": "ok", "path": path}
     return {"status": "failed"}
 

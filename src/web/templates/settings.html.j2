@@ -43,7 +43,7 @@
       <input id="process-time" type="time" value="{{ time.process_time }}" class="w-full border rounded-xl px-4 py-2 text-sm">
     </div>
     <div>
-      <label class="text-sm text-gray-500 block mb-1">视频生成时间</label>
+      <label class="text-sm text-gray-500 block mb-1">封面生成时间</label>
       <input id="video-time" type="time" value="{{ time.video_time }}" class="w-full border rounded-xl px-4 py-2 text-sm">
     </div>
     <div>
@@ -125,7 +125,7 @@
       <button onclick="saveKeywords()" class="btn bg-green-500 text-white text-xs">保存</button>
     </div>
   </div>
-  <p class="text-xs text-gray-400 mb-3">系统每日根据关键词权重对已加工内容打分，取最高分的3条生成视频并发布。权重越高越优先。</p>
+  <p class="text-xs text-gray-400 mb-3">系统每日根据关键词权重对已加工内容打分，取最高分的3条生成封面图并发布。权重越高越优先。</p>
   <table class="w-full text-sm" id="kw-table">
     <thead class="text-gray-500 border-b">
       <tr><th class="text-left py-2 w-6"></th><th class="text-left py-2">关键词</th><th class="text-left py-2 w-24">权重</th><th class="text-left py-2 w-16">启用</th><th class="w-10"></th></tr>

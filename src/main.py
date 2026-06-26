@@ -112,7 +112,7 @@ def cmd_web(args):
     scheduler = setup_scheduler()
     scheduler.start()
     print("Web 管理后台启动: http://127.0.0.1:8998")
-    print("定时器已启动 (采集07:00 加工07:30 视频08:15 发布18:00)")
+    print("定时器已启动 (采集07:00 加工07:30 封面08:15 发布18:00)")
     try:
         uvicorn.run("src.web.app:app", host="0.0.0.0", port=8998)
     except KeyboardInterrupt:
@@ -145,12 +145,15 @@ def cmd_run(args):
 
     processed = store.get_processed(limit=3)
     if processed:
-        print(f"\n=== 步骤3: 视频生成 ({len(processed)}篇) ===")
-        from src.video_generator.composer import generate_all
-        vid_result = asyncio.run(generate_all(store, max_count=3))
-        print(f"视频生成完成: 成功 {vid_result['success']} 个")
+        print(f"\n=== 步骤3: 封面生成 ({len(processed)}篇) ===")
+        from src.video_generator.cover import generate_cover
+        for item in processed:
+            path = await generate_cover(item.id[:8], item.xhs_title or item.title, item.topic_category)
+            if path:
+                store.update_video_status(item.id, path, 0)
+        print(f"封面生成完成")
     else:
-        print("没有待生成视频的内容")
+        print("没有待生成封面的内容")
 
     queue = store.get_publish_queue(limit=1)
     if queue:
@@ -207,14 +210,17 @@ def cmd_process(args):
 
 
 def cmd_video(args):
-    from src.video_generator.composer import generate_all
+    from src.video_generator.cover import generate_cover
     from src.storage.db import ContentStore
-
     store = ContentStore()
-    result = asyncio.run(generate_all(store, max_count=3))
-    print(f"视频生成完成: 成功 {result['success']} 个, 失败 {result['failed']} 个")
-    if "error" in result:
-        print(f"错误: {result['error']}")
+    processed = store.get_processed(limit=3)
+    success = 0
+    for item in processed:
+        path = asyncio.run(generate_cover(item.id[:8], item.xhs_title or item.title, item.topic_category))
+        if path:
+            store.update_video_status(item.id, path, 0)
+            success += 1
+    print(f"封面生成完成: 成功 {success} 个")
 
 
 def cmd_publish(args):
@@ -289,7 +295,7 @@ def main():
     p_web = subparsers.add_parser("web", help="启动 Web 管理后台 + 定时器")
     p_web.set_defaults(func=cmd_web)
 
-    p_run = subparsers.add_parser("run", help="单次全流程 (抓取→加工→视频→发布)")
+    p_run = subparsers.add_parser("run", help="单次全流程 (抓取→加工→封面→发布)")
     p_run.add_argument("--config", default=None, help="配置文件路径")
     p_run.set_defaults(func=cmd_run)
 
@@ -300,7 +306,7 @@ def main():
     p_process = subparsers.add_parser("process", help="仅 LLM 加工处理")
     p_process.set_defaults(func=cmd_process)
 
-    p_video = subparsers.add_parser("video", help="仅为已加工内容生成视频")
+    p_video = subparsers.add_parser("video", help="仅为已加工内容生成封面")
     p_video.set_defaults(func=cmd_video)
 
     p_publish = subparsers.add_parser("publish", help="仅发布待发布内容")
