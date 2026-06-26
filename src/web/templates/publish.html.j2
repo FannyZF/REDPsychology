@@ -118,20 +118,19 @@ async function markPublished(id) {
   location.reload();
 }
 async function copyText(id) {
-  const resp = await fetch('/api/content');
+  const resp = await fetch('/api/content?limit=200');
   const data = await resp.json();
   const item = data.items.find(i => i.id === id);
-  if (!item) return;
+  if (!item) { alert('未找到该内容'); return; }
   const tags = (() => { try { return JSON.parse(item.xhs_tags || '[]'); } catch(e) { return []; } })();
   const title = (item.xhs_title || '').trim();
   const body = (item.xhs_content || '').replace(/\\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   const tagLine = tags.map(t => '#' + t).join(' ');
   const text = title + '\n\n' + body + '\n\n' + tagLine;
   const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.position = 'fixed'; ta.style.left = '-9999px';
+  ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
   document.body.appendChild(ta); ta.select();
-  try { document.execCommand('copy'); alert('文案已复制'); } catch(e) {}
+  try { document.execCommand('copy'); alert('文案已复制，打开小红书粘贴'); } catch(e) { alert('复制失败'); }
   document.body.removeChild(ta);
 }
 async function setTime(id, time) {
