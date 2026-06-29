@@ -356,7 +356,7 @@ async def api_process():
 @app.post("/api/pipeline/video")
 async def api_video():
     from src.video_generator.cover import generate_cover
-    processed = store.get_processed(limit=3)
+    processed = store.get_processed(limit=50)
     success = 0
     for item in processed:
         path = await generate_cover(item.id[:8], item.xhs_title or item.title, item.topic_category)
