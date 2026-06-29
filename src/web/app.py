@@ -107,7 +107,7 @@ async def page_video(request: Request):
 @app.get("/publish", response_class=HTMLResponse)
 async def page_publish(request: Request):
     queue = [i.model_dump() for i in store.get_publish_queue(limit=10)]
-    published = [i.model_dump() for i in store.list_all(limit=50) if i.publish_status == "published"][:20]
+    published = [i.model_dump() for i in store.list_all(status="published", limit=50)]
     return render("publish.html.j2", {"queue": queue, "published": published}, request)
 
 
