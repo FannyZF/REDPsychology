@@ -50,6 +50,11 @@
   <h4 class="text-sm font-semibold text-gray-600 mb-2">摘要</h4>
   <p class="text-sm text-gray-600 mb-4 bg-gray-50 p-3 rounded-lg">{{ item.summary }}</p>
 
+  {% if item.video_script %}
+  <h4 class="text-sm font-semibold text-gray-600 mb-2">短视频脚本 ({{ item.video_script|length }}字)</h4>
+  <div class="text-sm text-gray-700 whitespace-pre-wrap bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-4">{{ item.video_script }}</div>
+  {% endif %}
+
   <h4 class="text-sm font-semibold text-gray-600 mb-2">小红书标题</h4>
   <p class="text-sm font-medium text-gray-800 mb-2">{{ item.xhs_title }}</p>
 

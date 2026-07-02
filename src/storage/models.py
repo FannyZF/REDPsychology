@@ -38,6 +38,7 @@ class ContentItem(BaseModel):
     video_duration: int = 0
     video_status: str = ""
     video_prompt: str = ""
+    video_script: str = ""
 
     publish_status: str = ""
     xhs_note_id: str = ""

@@ -45,6 +45,7 @@ def init_db():
             video_duration INTEGER DEFAULT 0,
             video_status TEXT DEFAULT '',
             video_prompt TEXT DEFAULT '',
+            video_script TEXT DEFAULT '',
             publish_status TEXT DEFAULT '',
             xhs_note_id TEXT DEFAULT '',
             xhs_published_at TEXT DEFAULT '',
@@ -171,7 +172,8 @@ class ContentStore:
                topic_category = ?, sub_category = ?, core_points = ?,
                summary = ?, target_audience = ?, priority = ?,
                xhs_title = ?, xhs_content = ?, xhs_tags = ?,
-               video_prompt = ?,
+                video_prompt = ?,
+                video_script = ?,
                status = 'processed', processed_at = ?, error_message = ''
                WHERE id = ?""",
             (
@@ -185,6 +187,7 @@ class ContentStore:
                 result.get("xhs_content", ""),
                 json.dumps(result.get("xhs_tags", []), ensure_ascii=False),
                 result.get("video_prompt", ""),
+                result.get("video_script", ""),
                 now(),
                 id,
             ),
